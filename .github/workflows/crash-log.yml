@@ -1,0 +1,39 @@
+name: Capture Crash Log
+
+on: workflow_dispatch
+
+jobs:
+  crash-log:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: fanqie-clean-apk
+          path: /tmp/apk
+
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 31
+          target: default
+          arch: x86_64
+          ram-size: 3072M
+          emulator-options: -no-window -no-audio -no-boot-anim -memory 2048
+          disable-animations: true
+          script: |
+            adb install -t /tmp/apk/fanqie-clean.apk 2>&1 | tail -5
+            adb logcat -c
+            adb shell am start -n com.dragon.read/.pages.splash.SplashActivity 2>&1 || true
+            sleep 8
+            adb shell dumpsys window windows 2>/dev/null | grep -E mCurrentFocus | head -3
+            adb logcat -d -s AndroidRuntime > /tmp/crash.txt 2>/dev/null || true
+            cat /tmp/crash.txt
+            adb logcat -d | grep -E "FATAL|CRASH|Exception|dalvikvm|AndroidRuntime" | head -20
+            adb exec-out screencap -p > /tmp/screen.png 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crash-log
+          path: /tmp/crash.txt
+          retention-days: 7
