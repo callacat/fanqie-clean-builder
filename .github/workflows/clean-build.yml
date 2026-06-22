@@ -43,11 +43,10 @@ jobs:
             --push-config config/push-removal.json \
             --permissions-keep config/permissions-keep.txt
 
-      - name: Strip DPatch tracking code (keep only CreatorProxy + DATA)
+      - name: Strip DPatch tracking code (keep only CreatorProxy + DATA + ۧۤۤ)
         run: |
           rm -f $(find _build/source -path "*/pandora/core/AppFactory.smali" ! -path "*\$DATA*") 2>/dev/null || true
           rm -f $(find _build/source -path "*/pandora/core/Copyright.smali") 2>/dev/null || true
-          rm -f $(find _build/source -path "*/ۧۤۤ.smali") 2>/dev/null || true
           echo "Remaining pandora-core files:"
           find _build/source -path "*/pandora/core/*" -name "*.smali" 2>/dev/null || echo "none"
 
