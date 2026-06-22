@@ -24,7 +24,47 @@ jobs:
             cp /tmp/apks/$f.apk /tmp/apks/$f-stripped.apk
             (cd /tmp/apks && zip -d $f-stripped.apk "lib/*" 2>/dev/null || true)
           done
-          ls -lh /tmp/apks/
+
+      - name: Write capture script
+        run: |
+          cat > /tmp/capture.sh <<'SCRIPT'
+          capture() {
+            L="$1" A="$2"
+            echo "=== [$L] Install ==="
+            adb uninstall com.dragon.read 2>/dev/null || true
+            adb install -t "$A" 2>&1 | tail -5 || { echo "INSTALL FAIL"; return; }
+            echo "=== [$L] mitmdump ==="
+            mitmdump -w "/tmp/results/$L.flow" --set block_global=false --listen-port 8080 &
+            sleep 2
+            adb shell settings put global http_proxy 10.0.2.2:8080 2>/dev/null || true
+            echo "=== [$L] Launch ==="
+            adb shell am start -n com.dragon.read/.pages.splash.SplashActivity 2>/dev/null || true
+            sleep 20
+            kill %1 2>/dev/null || true; wait 2>/dev/null || true
+            adb shell settings delete global http_proxy 2>/dev/null || true
+          }
+          capture official /tmp/apks/official-stripped.apk
+          capture modded /tmp/apks/modded-stripped.apk
+
+          echo "=== Diff ==="
+          for L in official modded; do
+            [ -f "/tmp/results/$L.flow" ] || continue
+            mitmdump -nr "/tmp/results/$L.flow" -s /dev/stdin 2>/dev/null <<'PYEOF' | sed 's|?.*||; s|/[0-9a-f]\{8,\}|/HASH|g' | sort -u > "/tmp/results/$L-urls.txt" || true
+      from mitmproxy import http
+      def response(flow: http.HTTPFlow):
+          print(f"{flow.response.status_code} {flow.request.pretty_url}")
+      PYEOF
+            echo "$L: $(wc -l < "/tmp/results/$L-urls.txt" 2>/dev/null || echo 0)"
+          done
+          {
+            echo "=== Official only ==="
+            comm -23 /tmp/results/official-urls.txt /tmp/results/modded-urls.txt 2>/dev/null || true
+            echo "=== Modded only ==="
+            comm -13 /tmp/results/official-urls.txt /tmp/results/modded-urls.txt 2>/dev/null || true
+          } > /tmp/results/traffic-diff.txt
+          cat /tmp/results/traffic-diff.txt
+          SCRIPT
+          chmod +x /tmp/capture.sh
 
       - name: Run emulator + capture
         uses: reactivecircus/android-emulator-runner@v2
@@ -36,59 +76,8 @@ jobs:
           disk-size: 4096M
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -memory 2048 -wipe-data
           disable-animations: true
-          boot-timeout: 600s
-          script: |
-            APKS=/tmp/apks; R=/tmp/results
-
-            test_apk() {
-              LABEL=$1; APK=$2
-              echo "=== [$LABEL] Install ==="
-              adb uninstall com.dragon.read 2>/dev/null || true
-              adb install -t "$APK" 2>&1 | tail -5 || { echo "INSTALL FAIL"; return; }
-
-              echo "=== [$LABEL] Start mitmdump ==="
-              mitmdump -w "$R/$LABEL.flow" --set block_global=false --listen-port 8080 &
-              MPID=$!
-              sleep 2
-
-              adb shell settings put global http_proxy 10.0.2.2:8080 2>/dev/null || true
-
-              echo "=== [$LABEL] Launch ==="
-              adb shell am start -n com.dragon.read/.pages.splash.SplashActivity 2>/dev/null || true
-              sleep 20
-
-              kill $MPID 2>/dev/null || true
-              wait $MPID 2>/dev/null || true
-              adb shell settings delete global http_proxy 2>/dev/null || true
-            }
-
-            test_apk "official" "$APKS/official-stripped.apk"
-            test_apk "modded" "$APKS/modded-stripped.apk"
-
-            echo "=== Diff ==="
-            for label in official modded; do
-              [ -f "$R/$label.flow" ] || continue
-              # Extract URLs + status codes
-              mitmdump -nr "$R/$label.flow" -s /dev/stdin 2>/dev/null > "$R/$label-raw.txt" <<'PYEOF' || true
-from mitmproxy import http
-def response(flow: http.HTTPFlow):
-    u = flow.request.pretty_url
-    print(f"{flow.response.status_code} {u}")
-PYEOF
-              # Clean URLs: normalize, sort, dedupe
-              sed 's|^[0-9][0-9][0-9] ||; s|?.*||; s|/[0-9a-f]\{8,\}|/HASH|g' "$R/$label-raw.txt" | sort -u > "$R/$label-urls.txt"
-              echo "$label: $(wc -l < "$R/$label-urls.txt") unique endpoints"
-            done
-
-            # Diff
-            {
-              echo "=== ONLY in official ==="
-              comm -23 "$R/official-urls.txt" "$R/modded-urls.txt" 2>/dev/null || true
-              echo "=== ONLY in modded ==="
-              comm -13 "$R/official-urls.txt" "$R/modded-urls.txt" 2>/dev/null || true
-              echo "=== OFFICIAL total: $(wc -l < "$R/official-urls.txt" 2>/dev/null || echo 0)"
-              echo "=== MODDED total:   $(wc -l < "$R/modded-urls.txt" 2>/dev/null || echo 0)"
-            } | tee "$R/traffic-diff.txt"
+          emulator-boot-timeout: 600
+          script: bash /tmp/capture.sh
 
       - name: Upload results
         if: always()
