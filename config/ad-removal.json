@@ -8,8 +8,6 @@
     "com/bytedance/sys",
     "com/bytedance/embedapplog",
     "com/bytedance/monitor",
-    "com/ss/android",
-    "com/ss/sys",
     "com/baidu/mobads",
     "com/sigmob",
     "com/kuaishou"
