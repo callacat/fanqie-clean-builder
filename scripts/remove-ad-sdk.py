@@ -52,14 +52,21 @@ def safe_relative(path: Path, anchor: Path) -> str:
 # ---------------------------------------------------------------------------
 
 def delete_directories(source: Path, packages: list[str]) -> int:
-    """在所有 smali* 子目录下删除指定的包目录。"""
+    """在所有 smali* 子目录下删除指定的包目录（带路径逃逸防护）。"""
     count = 0
+    source_resolved = source.resolve()
     for smali_dir in sorted(source.glob("smali*")):
         if not smali_dir.is_dir():
             continue
         for pkg in packages:
             target = smali_dir / pkg
             if target.exists():
+                # Path escape guard: resolved path must be under source
+                try:
+                    target.resolve().relative_to(source_resolved)
+                except ValueError:
+                    print(f"  ✗ 跳过: {target} 不在 {source} 目录下")
+                    continue
                 shutil.rmtree(target)
                 count += 1
                 print(f"  ✓ 删除 {safe_relative(target, source)}")
@@ -301,27 +308,8 @@ def main() -> int:
     else:
         print("  (push_packages 为空，跳过)")
 
-    # ---- Phase 4: Manifest 操作 ----
-    if manifest is not None:
-        print("\n=== Phase 4: Manifest 清理 ===")
-
-        # 4a: 删除推送组件声明
-        push_receivers = push_config.get("push_receivers_in_manifest", [])
-        if push_receivers:
-            n = remove_manifest_components(manifest, push_receivers)
-            print(f"  → 移除 {n} 个推送组件声明")
-        else:
-            print("  (push_receivers_in_manifest 为空，跳过)")
-
-        # 4b: 权限白名单过滤
-        if keep_perms:
-            n = filter_permissions(manifest, keep_perms)
-            print(f"  → 移除 {n} 个非必要权限")
-        else:
-            print("  (权限白名单为空，跳过)")
-
-        # 4c: 关闭 cleartext
-        disable_cleartext(manifest)
+    # ---- Phase 4: no manifest ops here — handled by modify-manifest.py ----
+    # (permissions, cleartext, push components are all in modify-manifest.py)
 
     print("\n✓ 完成")
     return 0

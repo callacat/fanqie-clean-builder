@@ -14,7 +14,7 @@ The patch-report.json (from smali_diff_harvester) lists every file pair:
     "files": ["smali_classes18/zo4/b.smali", "smali_classes24/zo4/b.smali"]
                ↑ official path            ↑ modded path
 
-We copy modded → official for every logical_change (1 422 files),
+We copy modded → official for every logical_change (1 422 files),
 and append new modded-only files (900 files) to smali_classes29.
 """
 
@@ -23,17 +23,15 @@ from __future__ import annotations
 import argparse, json, shutil, re, sys
 from pathlib import Path
 
-# Files added by the modder that are SAFE to include (signature spoofing core).
 SAFE_NEW = frozenset({
     "com/pandora/core/CreatorProxy.smali",
     "com/pandora/core/AppFactory$DATA.smali",
 })
 
-# Files we NEVER want (potential tracking / C2).
 BLOCKLIST = frozenset({
     "com/pandora/core/AppFactory.smali",
-    "com/pandora/core/Copyright.smali",  # just a credit file, harmless but useless
-    "com/pandora/core/ۧۤۤ.smali",       # obfuscated helper — unknown behavior
+    "com/pandora/core/Copyright.smali",
+    "com/pandora/core/ۧۤۤ.smali",
 })
 
 RE_CLASS = re.compile(
@@ -42,19 +40,18 @@ RE_CLASS = re.compile(
 )
 
 
-def find_in_tree(root: Path, class_name: str) -> Path | None:
-    """Scan *root* smali dirs for a file whose .class matches *class_name*."""
-    # Internal JVM name uses '/' not '.'
-    jvm_name = class_name.replace(".", "/")
-    for smali_dir in sorted(root.glob("smali*")):
+def build_class_index(root: Path) -> dict[str, Path]:
+    """Scan all smali dirs once and return {class_name: file_path}."""
+    idx: dict[str, Path] = {}
+    for smali_dir in root.glob("smali*"):
         if not smali_dir.is_dir():
             continue
         for f in smali_dir.rglob("*.smali"):
             head = f.read_bytes()[:2000]
             m = RE_CLASS.search(head.decode("utf-8", errors="replace"))
-            if m and m.group(1) == jvm_name:
-                return f
-    return None
+            if m:
+                idx[m.group(1)] = f
+    return idx
 
 
 def main() -> None:
@@ -71,57 +68,59 @@ def main() -> None:
     report = json.loads(Path(args.report).read_text())
     new_dex = official / args.new_dex
 
+    # Build class indices once (O(n) total, not O(n²))
+    print("Building class index for official tree…")
+    official_idx = build_class_index(official)
+    print(f"  {len(official_idx)} classes indexed")
+    print("Building class index for modded tree…")
+    modded_idx = build_class_index(modded)
+    print(f"  {len(modded_idx)} classes indexed")
+
     copied = skipped = added = blocked = 0
 
     for p in report.get("patches", []):
         dt = p["diff_type"]
         cls = p["class_name"]
-        files = p.get("files", [])  # [official_rel, modded_rel] or [modded_rel]
+        files = p.get("files", [])
         cat = p.get("category", "uncategorized")
 
         if dt == "metadata_only":
-            continue  # debug noise
+            continue
 
-        # ── logical_change: copy modded path → target in official tree ──
+        jvm_name = cls.replace(".", "/")
+
         if dt == "logical_change" and len(files) >= 2:
             mod_rel = files[1]
             src = modded / mod_rel
             if not src.is_file():
-                # fallback: find by class name in modded
-                src = find_in_tree(modded, cls)
+                src = modded_idx.get(jvm_name)
             if not src:
                 print(f"  SKIP {cls}: modded source not found")
                 skipped += 1
                 continue
 
-            # Find target in official tree (by class name)
-            dst = find_in_tree(official, cls)
+            dst = official_idx.get(jvm_name)
             if not dst:
-                # Class was deleted in official? Shouldn't happen for
-                # logical_change (it exists in both). Fallback:
                 dst = official / mod_rel
                 dst.parent.mkdir(parents=True, exist_ok=True)
 
             shutil.copy2(src, dst)
             copied += 1
 
-        # ── new file (modded-only) ───────────────────────────────────
         elif dt == "added" and files:
             mod_rel = files[0]
 
-            # Blocklist check
             if mod_rel in BLOCKLIST:
                 blocked += 1
                 continue
 
-            # Only include safe new files by default
             if cat == "uncategorized" and mod_rel not in SAFE_NEW:
                 blocked += 1
                 continue
 
             src = modded / mod_rel
             if not src.is_file():
-                src = find_in_tree(modded, cls)
+                src = modded_idx.get(jvm_name)
             if not src:
                 print(f"  SKIP-ADD {cls}: source not found")
                 skipped += 1
@@ -133,7 +132,6 @@ def main() -> None:
             added += 1
 
     print(f"Overlay: {copied} overwritten, {added} new, {blocked} blocked, {skipped} skipped")
-    print(f"Total smali in output: {sum(1 for _ in official.rglob('*.smali'))}")
 
 
 if __name__ == "__main__":
