@@ -43,25 +43,30 @@ jobs:
           wait $P1; wait $P2 || /opt/apktool d _downloads/modded.apk -o _build/mod -f 2>&1 | tail -3
           [ -f _build/off/AndroidManifest.xml ] && [ -f _build/mod/AndroidManifest.xml ] && echo "OK" || exit 1
 
-      - name: Extract Lancet hooks from modded, overlay onto official
+      - name: Strip Ad SDK + Push (frees DEX method refs)
         run: |
-          # Content-hash compare to find modified files
-          python3 scripts/smali_diff_harvester.py \
-            --official _build/off --modded _build/mod \
-            --output _patches --report _patches/patch-report.json
-          # Only overlay Lancet hooks, sign-checks, device-spoof (not all 1,422 logical changes)
-          python3 scripts/overlay-patches.py \
-            --lancet-only \
-            --official _build/off --modded _build/mod \
-            --report _patches/patch-report.json
-
-      - name: Strip Ad SDK + Push + Tracking
-        run: |
+          # Strip official first — frees method ref space
           python3 scripts/remove-ad-sdk.py \
             --source _build/off \
             --ad-config config/ad-removal.json \
             --push-config config/push-removal.json \
             --permissions-keep config/permissions-keep.txt
+          # Strip modded too — keeps harvester report clean
+          python3 scripts/remove-ad-sdk.py \
+            --source _build/mod \
+            --ad-config config/ad-removal.json \
+            --push-config config/push-removal.json \
+            --permissions-keep config/permissions-keep.txt
+
+      - name: Extract Lancet hooks & overlay onto official
+        run: |
+          python3 scripts/smali_diff_harvester.py \
+            --official _build/off --modded _build/mod \
+            --output _patches --report _patches/patch-report.json
+          python3 scripts/overlay-patches.py \
+            --lancet-only \
+            --official _build/off --modded _build/mod \
+            --report _patches/patch-report.json
 
       - name: Modify Manifest
         run: |
