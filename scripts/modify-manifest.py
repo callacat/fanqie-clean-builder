@@ -190,7 +190,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--component-factory",
         default=DEFAULT_FACTORY,
-        help=f"appComponentFactory 替换值 (默认: {DEFAULT_FACTORY})",
+        help=f"appComponentFactory 替换值 (默认: {DEFAULT_FACTORY}; "
+             "传空字符串则不修改)",
+    )
+    p.add_argument(
+        "--skip-component-factory",
+        action="store_true",
+        help="完全跳过 appComponentFactory 替换",
     )
     return p
 
@@ -215,7 +221,9 @@ def main() -> int:
 
     # 1. appComponentFactory 替换
     print("\n--- 1. appComponentFactory 替换 ---")
-    if replace_component_factory(manifest, args.component_factory):
+    if args.skip_component_factory:
+        print("  (跳过)")
+    elif replace_component_factory(manifest, args.component_factory):
         changes += 1
 
     # 2. 权限白名单过滤

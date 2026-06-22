@@ -9,7 +9,6 @@ on:
         default: false
 
 env:
-  OFFICIAL_URL: 'https://cloud.dsdog.tk/d/google/temp/%E7%95%AA%E8%8C%84%E5%85%8D%E8%B4%B9%E5%B0%8F%E8%AF%B4_7.2.4.32.apk?sign=xUavME2Rt4Vf1FTbCppPq7sU8bRUFh29hrbIhdsXon4=:0'
   MODDED_URL: 'https://github.com/callacat/gha-build-farm/releases/download/apk-assets/fanqie_novel_7.2.4.19.apk'
   JAVA_TOOL_OPTIONS: '-Xmx6g'
 
@@ -27,57 +26,55 @@ jobs:
           curl -sL "https://github.com/iBotPeaches/Apktool/releases/download/v3.0.2/apktool_3.0.2.jar" -o /opt/apktool.jar
           printf '#!/bin/bash\njava -jar /opt/apktool.jar "$@"\n' > /opt/apktool && chmod +x /opt/apktool
 
-      - name: Download both APKs
+      - name: Download & decode modded APK
         run: |
           mkdir -p _downloads _build
-          curl -sL -o _downloads/official.apk "$OFFICIAL_URL"
           curl -sL -o _downloads/modded.apk "$MODDED_URL"
+          /opt/apktool if _downloads/modded.apk 2>&1 | tail -1 || true
+          /opt/apktool d _downloads/modded.apk -o _build/source -f
+          [ -f _build/source/AndroidManifest.xml ] || exit 1
 
-      - name: Parallel decode
+      - name: Nuke invalid resource dirs (anti-repackaging measure)
         run: |
-          /opt/apktool if _downloads/official.apk 2>&1 | tail -1 || true
-          /opt/apktool d _downloads/official.apk -o _build/off -f &
-          P1=$!
-          /opt/apktool d _downloads/modded.apk -o _build/mod -f &
-          P2=$!
-          wait $P1; wait $P2 || /opt/apktool d _downloads/modded.apk -o _build/mod -f 2>&1 | tail -3
-          [ -f _build/off/AndroidManifest.xml ] && [ -f _build/mod/AndroidManifest.xml ] && echo "OK" || exit 1
+          rm -rf _build/source/res/invalid15 2>/dev/null || true
+          PUB="_build/source/res/values/public.xml"
+          [ -f "$PUB" ] && grep -vE 'type="invalid[0-9]+"' "$PUB" > "${PUB}.clean" && mv "${PUB}.clean" "$PUB"
+          echo "Invalid resources cleaned"
 
-      - name: Strip Ad SDK + Push (frees DEX method refs)
+      - name: Strip Ad SDK + Push + Tracking
         run: |
-          # Strip official first — frees method ref space
           python3 scripts/remove-ad-sdk.py \
-            --source _build/off \
-            --ad-config config/ad-removal.json \
-            --push-config config/push-removal.json \
-            --permissions-keep config/permissions-keep.txt
-          # Strip modded too — keeps harvester report clean
-          python3 scripts/remove-ad-sdk.py \
-            --source _build/mod \
+            --source _build/source \
             --ad-config config/ad-removal.json \
             --push-config config/push-removal.json \
             --permissions-keep config/permissions-keep.txt
 
-      - name: Extract Lancet hooks & overlay onto official
+      - name: Strip DPatch tracking code (keep only CreatorProxy + DATA)
         run: |
-          python3 scripts/smali_diff_harvester.py \
-            --official _build/off --modded _build/mod \
-            --output _patches --report _patches/patch-report.json
-          python3 scripts/overlay-patches.py \
-            --lancet-only \
-            --official _build/off --modded _build/mod \
-            --report _patches/patch-report.json
+          rm -f $(find _build/source -path "*/pandora/core/AppFactory.smali" ! -path "*\$DATA*") 2>/dev/null || true
+          rm -f $(find _build/source -path "*/pandora/core/Copyright.smali") 2>/dev/null || true
+          rm -f $(find _build/source -path "*/ۧۤۤ.smali") 2>/dev/null || true
+          echo "Remaining pandora-core files:"
+          find _build/source -path "*/pandora/core/*" -name "*.smali" 2>/dev/null || echo "none"
 
       - name: Modify Manifest
         run: |
-          python3 scripts/modify-manifest.py \
-            --manifest _build/off/AndroidManifest.xml \
+          python3 scripts/modify-manifest.py --skip-component-factory \
+            --manifest _build/source/AndroidManifest.xml \
             --push-config config/push-removal.json \
             --permissions-keep config/permissions-keep.txt
 
+      - name: Enable jumbo mode (safety net)
+        run: |
+          YML="_build/source/apktool.yml"
+          [ -f "$YML" ] && grep -q 'smali.jumbo' "$YML" && \
+            sed -i 's/smali\.jumbo.*/smali.jumbo: true/' "$YML" || \
+            echo "smali.jumbo: true" >> "$YML"
+          grep "jumbo" "$YML"
+
       - name: Rebuild APK
         run: |
-          /opt/apktool b _build/off -o _build/fanqie-unsigned.apk 2>&1 | tail -5
+          /opt/apktool b _build/source -o _build/fanqie-unsigned.apk 2>&1 | tail -5
           ls -lh _build/fanqie-unsigned.apk || exit 1
 
       - name: Sign APK
@@ -135,7 +132,7 @@ jobs:
             adb logcat > /tmp/r/logcat.txt &
             sleep 15; kill %1 2>/dev/null || true
             grep -E "AndroidRuntime|FATAL|CRASH" /tmp/r/logcat.txt > /tmp/r/crash.txt || true
-            [ -s /tmp/r/crash.txt ] && echo "CRASH" && cat /tmp/r/crash.txt || echo "OK"
+            [ -s /tmp/r/crash.txt ] && echo "CRASH" | cat - /tmp/r/crash.txt || echo "OK"
             grep -iE "pandora|CreatorProxy|ShadowHook" /tmp/r/logcat.txt > /tmp/r/hook.txt || true
             [ -s /tmp/r/hook.txt ] && echo "HOOK OK" || echo "NO HOOK"
 
