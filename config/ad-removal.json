@@ -6,8 +6,6 @@
     "com/bytedance/pangle",
     "com/bytedance/frameworks/plugin",
     "com/bytedance/sys",
-    "com/bytedance/embedapplog",
-    "com/bytedance/monitor",
     "com/baidu/mobads",
     "com/sigmob",
     "com/kuaishou"

@@ -75,10 +75,9 @@ jobs:
           [ -f debug.keystore ] || keytool -genkey -v -keystore debug.keystore -alias debug \
             -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android \
             -dname "CN=Debug,O=Clean,C=CN"
-          jarsigner -sigalg SHA1withRSA -digestalg SHA1 \
-            -keystore debug.keystore -storepass android \
-            _build/fanqie-unsigned.apk debug 2>&1 | tail -2
-          mv _build/fanqie-unsigned.apk _build/fanqie-clean.apk
+          apksigner sign --ks debug.keystore --ks-pass pass:android \
+            --out _build/fanqie-clean.apk _build/fanqie-unsigned.apk 2>&1 | tail -2
+          ls -lh _build/fanqie-clean.apk
 
       - name: Verify APK
         run: |
