@@ -119,14 +119,15 @@ jobs:
       - uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 31
-          target: google_apis
+          target: default
           arch: x86_64
-          ram-size: 4096M
+          ram-size: 3072M
           heap-size: 1024M
           disk-size: 4096M
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -memory 2048 -cores 2
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -memory 2048
           disable-animations: true
           emulator-not-wait: false
+          boot-timeout: 600s
           script: |
             mkdir -p /tmp/r
             # Strip arm64 libs so APK installs on x86_64 emulator (Java layer test)
