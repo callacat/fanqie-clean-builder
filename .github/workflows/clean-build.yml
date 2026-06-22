@@ -66,9 +66,8 @@ jobs:
             echo "smali.jumbo: true" >> "$YML"
           grep "jumbo" "$YML"
 
-      - name: Rebuild APK (no native libs — x86 emulator compatible)
+      - name: Rebuild APK 
         run: |
-          rm -rf _build/source/lib
           /opt/apktool b _build/source -o _build/fanqie-unsigned.apk 2>&1 | tail -5
           ls -lh _build/fanqie-unsigned.apk || exit 1
 

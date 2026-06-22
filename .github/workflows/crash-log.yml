@@ -1,5 +1,4 @@
 name: Capture Crash Log
-
 on: workflow_dispatch
 
 jobs:
@@ -7,15 +6,25 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 25
     steps:
+      - name: Get latest successful build run ID
+        id: runid
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RID=$(gh run list -R callacat/fanqie-clean-builder -w "Fanqie Clean Build Pipeline" --json databaseId,conclusion --jq '.[] | select(.conclusion=="success") | .databaseId' | head -1)
+          echo "run_id=$RID" >> "$GITHUB_OUTPUT"
+
       - uses: actions/download-artifact@v4
         with:
           name: fanqie-clean-apk
           path: /tmp/apk
+          run-id: ${{ steps.runid.outputs.run_id }}
+          github-token: ${{ github.token }}
 
-      - uses: reactivecircus/android-emulator-runner@v2
+      - name: Install APK on emulator + capture logcat
+        uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 31
-          target: default
           arch: x86_64
           ram-size: 3072M
           emulator-options: -no-window -no-audio -no-boot-anim -memory 2048
@@ -25,15 +34,17 @@ jobs:
             adb logcat -c
             adb shell am start -n com.dragon.read/.pages.splash.SplashActivity 2>&1 || true
             sleep 8
-            adb shell dumpsys window windows 2>/dev/null | grep -E mCurrentFocus | head -3
-            adb logcat -d -s AndroidRuntime > /tmp/crash.txt 2>/dev/null || true
-            cat /tmp/crash.txt
-            adb logcat -d | grep -E "FATAL|CRASH|Exception|dalvikvm|AndroidRuntime" | head -20
+            adb logcat -d > /tmp/logcat-full.txt 2>/dev/null
+            grep -E "AndroidRuntime|FATAL|CRASH|Exception|ClassNotFound|dalvikvm" /tmp/logcat-full.txt > /tmp/crash-log.txt || true
+            echo "=== CRASH LOG ==="
+            cat /tmp/crash-log.txt
+            echo "=== ACTIVITY FOCUS ==="
+            adb shell dumpsys window windows 2>/dev/null | grep -E mCurrentFocus | head -3 || true
             adb exec-out screencap -p > /tmp/screen.png 2>/dev/null || true
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: crash-log
-          path: /tmp/crash.txt
+          path: /tmp/crash-log.txt
           retention-days: 7
