@@ -1,0 +1,9 @@
+*.apk
+*.keystore
+_downloads/
+_build/
+_smali/
+_patches/
+__pycache__/
+*.pyc
+.DS_Store

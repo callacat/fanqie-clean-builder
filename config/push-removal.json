@@ -1,0 +1,23 @@
+{
+  "push_packages": [
+    "com/xiaomi/push",
+    "com/huawei/hms",
+    "com/hihonor/push",
+    "com/vivo/push",
+    "com/oppo/push",
+    "com/heytap/push",
+    "com/bytedance/push",
+    "com/assist/push"
+  ],
+  "push_receivers_in_manifest": [
+    "com.xiaomi.push.service.XMPushService",
+    "com.xiaomi.push.service.XMReceiver",
+    "com.huawei.push.service.HmsMessageService",
+    "com.huawei.push.service.HmsReceiver",
+    "com.hihonor.push.service.HonorMessageService",
+    "com.vivo.push.service.VivoPushService",
+    "com.vivo.push.receiver.VivoPushReceiver",
+    "com.oppo.push.service.OppoPushService",
+    "com.oppo.push.receiver.OppoPushReceiver"
+  ]
+}
