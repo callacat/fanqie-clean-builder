@@ -119,13 +119,22 @@ jobs:
       - uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 31
+          target: google_apis
           arch: x86_64
-          ram-size: 3072M
-          emulator-options: -no-window -no-audio -no-boot-anim -memory 2048
+          ram-size: 4096M
+          heap-size: 1024M
+          disk-size: 4096M
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -memory 2048 -cores 2
           disable-animations: true
+          emulator-not-wait: false
           script: |
             mkdir -p /tmp/r
-            adb install -t "${{ steps.apk.outputs.path }}" | tee /tmp/r/install.txt
+            # Strip arm64 libs so APK installs on x86_64 emulator (Java layer test)
+            APK="${{ steps.apk.outputs.path }}"
+            STRIPPED="/tmp/r/fanqie-clean-stripped.apk"
+            cp "$APK" "$STRIPPED"
+            (cd /tmp/r && zip -d "fanqie-clean-stripped.apk" "lib/*") 2>/dev/null || true
+            adb install -t "$STRIPPED" | tee /tmp/r/install.txt
             adb shell am start -n com.dragon.read/.pages.splash.SplashActivity || true
             sleep 5
             adb logcat -c 2>/dev/null || true
