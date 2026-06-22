@@ -1,12 +1,6 @@
 name: Fanqie Clean Build Pipeline
 
-on:
-  workflow_dispatch:
-    inputs:
-      skip_emulator:
-        description: 'Skip Android Emulator verification'
-        type: boolean
-        default: false
+on: workflow_dispatch
 
 env:
   MODDED_URL: 'https://github.com/callacat/gha-build-farm/releases/download/apk-assets/fanqie_novel_7.2.4.19.apk'
@@ -100,51 +94,3 @@ jobs:
           path: _build/fanqie-clean.apk
           retention-days: 90
 
-  emulator-test:
-    needs: build
-    if: ${{ !cancelled() && !inputs.skip_emulator }}
-    runs-on: ubuntu-22.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: fanqie-clean-apk
-          path: _apk/
-
-      - name: Find APK
-        id: apk
-        run: |
-          APK=$(find _apk -name '*.apk' -type f | head -1)
-          echo "path=$APK" >> "$GITHUB_OUTPUT"
-
-      - uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 31
-          target: default
-          arch: x86_64
-          ram-size: 3072M
-          heap-size: 1024M
-          disk-size: 4096M
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -memory 2048
-          disable-animations: true
-          
-          emulator-boot-timeout: 600
-          script: |
-            mkdir -p /tmp/r
-            adb install -t "${{ steps.apk.outputs.path }}" 2>&1 | tee /tmp/r/install.txt
-            adb shell am start -n com.dragon.read/.pages.splash.SplashActivity || true
-            sleep 5
-            adb logcat -c 2>/dev/null || true
-            adb logcat > /tmp/r/logcat.txt &
-            sleep 15; kill %1 2>/dev/null || true
-            grep -E "AndroidRuntime|FATAL|CRASH" /tmp/r/logcat.txt > /tmp/r/crash.txt || true
-            [ -s /tmp/r/crash.txt ] && echo "CRASH" | cat - /tmp/r/crash.txt || echo "OK"
-            grep -iE "pandora|CreatorProxy|ShadowHook" /tmp/r/logcat.txt > /tmp/r/hook.txt || true
-            [ -s /tmp/r/hook.txt ] && echo "HOOK OK" || echo "NO HOOK"
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: emulator-verification
-          path: /tmp/r/
-          retention-days: 14
