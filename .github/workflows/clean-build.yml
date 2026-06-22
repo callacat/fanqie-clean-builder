@@ -126,8 +126,8 @@ jobs:
           disk-size: 4096M
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -memory 2048
           disable-animations: true
-          emulator-not-wait: false
-          boot-timeout: 600s
+          
+          emulator-boot-timeout: 600
           script: |
             mkdir -p /tmp/r
             # Strip arm64 libs so APK installs on x86_64 emulator (Java layer test)
