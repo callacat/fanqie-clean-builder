@@ -20,26 +20,43 @@ jobs:
 
       - name: Download official APK
         run: |
-          mkdir -p _downloads _build _smali _diff
+          mkdir -p _downloads _smali _diff
           curl -sL -o _downloads/official.apk "$OFFICIAL_URL"
 
-      - name: Fetch latest successful build APK
+      - name: Get latest successful build run ID
+        id: runid
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           RID=$(gh run list -R ${{ github.repository }} -w "Fanqie Clean Build Pipeline" --json databaseId,conclusion --jq '.[] | select(.conclusion=="success") | .databaseId' | head -1)
-          echo "Getting APK from run $RID"
-          gh run download "$RID" -n fanqie-clean-apk -D /tmp/artifact 2>/dev/null
-          cd /tmp/artifact && unzip -o "*.zip" 2>/dev/null; ls -lh *.apk 2>/dev/null && cp *.apk /tmp/clean.apk 2>/dev/null
-          ls -lh /tmp/clean.apk 2>/dev/null || echo "APK not found"
+          echo "run_id=$RID" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: fanqie-clean-apk
+          path: /tmp/clean-apk
+          run-id: ${{ steps.runid.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Extract APK from artifact
+        run: |
+          cd /tmp/clean-apk && ls -la && find . -name '*.apk' | head -3
+          APK=$(find /tmp/clean-apk -name '*.apk' -type f | head -1)
+          if [ -z "$APK" ]; then
+            unzip -o /tmp/clean-apk/*.zip -d /tmp/clean-apk-extracted 2>/dev/null || true
+            APK=$(find /tmp/clean-apk-extracted -name '*.apk' -type f | head -1)
+          fi
+          echo "APK: $APK"
+          cp "$APK" /tmp/clean.apk
+          ls -lh /tmp/clean.apk
 
       - name: Parallel decode
         run: |
           /opt/apktool d _downloads/official.apk -o _smali/official -f &
-          P1=$!
-          /opt/apktool d /tmp/clean.apk -o _smali/clean -f 2>&1 &
-          P2=$!
-          wait $P1 $P2
+          PID1=$!
+          /opt/apktool d /tmp/clean.apk -o _smali/clean -f &
+          PID2=$!
+          wait $PID1 $PID2
           echo "Official: $(find _smali/official -name '*.smali' | wc -l)"
           echo "Clean:    $(find _smali/clean -name '*.smali' | wc -l)"
         timeout-minutes: 12
@@ -53,8 +70,7 @@ jobs:
             --report _diff/report.json
 
       - name: Show summary
-        run: |
-          python3 scripts/verify-diff-summary.py _diff/report.json
+        run: python3 scripts/verify-diff-summary.py _diff/report.json
 
       - name: Upload diff report
         if: always()
