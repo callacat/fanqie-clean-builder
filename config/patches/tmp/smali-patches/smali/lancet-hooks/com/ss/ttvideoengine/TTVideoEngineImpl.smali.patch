@@ -1,0 +1,16 @@
+# Patch: com.ss.ttvideoengine.TTVideoEngineImpl
+# Official: smali_classes16/com/ss/ttvideoengine/TTVideoEngineImpl.smali
+# Modded:  smali_classes17/com/ss/ttvideoengine/TTVideoEngineImpl.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes16/com/ss/ttvideoengine/TTVideoEngineImpl.smali
++++ smali_classes17/com/ss/ttvideoengine/TTVideoEngineImpl.smali
+@@ -13393,7 +13393,7 @@
+     invoke-virtual {p1}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+     move-result-object p1
+     const/16 v0, 0x400
+-    const-string v1, "/cache/4838/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.ss.ttm:ttvideoengine:1.10.252.120-novel-22969"
++    const-string v1, "/cache/81555/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.ss.ttm:ttvideoengine:1.10.252.120-novel-22969"
+     invoke-static {v1, p1, v0}, Lcom/dragon/read/pathcollect/hook/JavaCollectCallback;->tryCollect(Ljava/lang/String;Ljava/lang/String;I)V
+     :cond_0
+     return p0

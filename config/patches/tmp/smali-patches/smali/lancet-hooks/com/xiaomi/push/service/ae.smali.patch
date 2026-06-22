@@ -1,0 +1,25 @@
+# Patch: com.xiaomi.push.service.ae
+# Official: smali_classes16/com/xiaomi/push/service/ae.smali
+# Modded:  smali_classes17/com/xiaomi/push/service/ae.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes16/com/xiaomi/push/service/ae.smali
++++ smali_classes17/com/xiaomi/push/service/ae.smali
+@@ -949,7 +949,7 @@
+     invoke-virtual {p0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+     move-result-object v0
+     const/4 v1, 0x2
+-    const-string v2, "/cache/4838/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.xiaomi.push:mipush:5.9.6.1-444be"
++    const-string v2, "/cache/81555/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.xiaomi.push:mipush:5.9.6.1-444be"
+     invoke-static {v2, v0, v1}, Lcom/dragon/read/pathcollect/hook/JavaCollectCallback;->tryCollect(Ljava/lang/String;Ljava/lang/String;I)V
+     :cond_0
+     new-instance v0, Lcom/bytedance/security/android/aopcheck/PolarisFileInputStreamWrapper;
+@@ -967,7 +967,7 @@
+     invoke-virtual {p0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+     move-result-object v0
+     const/4 v1, 0x4
+-    const-string v2, "/cache/4838/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.xiaomi.push:mipush:5.9.6.1-444be"
++    const-string v2, "/cache/81555/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.xiaomi.push:mipush:5.9.6.1-444be"
+     invoke-static {v2, v0, v1}, Lcom/dragon/read/pathcollect/hook/JavaCollectCallback;->tryCollect(Ljava/lang/String;Ljava/lang/String;I)V
+     :cond_0
+     new-instance v0, Lcom/bytedance/security/android/aopcheck/PolarisFileOutputStreamWrapper;

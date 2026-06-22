@@ -1,0 +1,16 @@
+# Patch: com.bytedance.common.utility.DeviceUtils
+# Official: smali_classes22/com/bytedance/common/utility/DeviceUtils.smali
+# Modded:  smali_classes23/com/bytedance/common/utility/DeviceUtils.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes22/com/bytedance/common/utility/DeviceUtils.smali
++++ smali_classes23/com/bytedance/common/utility/DeviceUtils.smali
+@@ -1159,7 +1159,7 @@
+     invoke-virtual {p0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+     move-result-object v0
+     const/4 v1, 0x2
+-    const-string v2, "/cache/4838/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.bytedance.frameworks.baselib:utility:2.0.13-rc.1-novel-b780e"
++    const-string v2, "/cache/81555/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.bytedance.frameworks.baselib:utility:2.0.13-rc.1-novel-b780e"
+     invoke-static {v2, v0, v1}, Lcom/dragon/read/pathcollect/hook/JavaCollectCallback;->tryCollect(Ljava/lang/String;Ljava/lang/String;I)V
+     :cond_0
+     new-instance v0, Lcom/bytedance/security/android/aopcheck/PolarisFileInputStreamWrapper;

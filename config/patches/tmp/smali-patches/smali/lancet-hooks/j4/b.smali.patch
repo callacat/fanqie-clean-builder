@@ -1,0 +1,16 @@
+# Patch: j4.b
+# Official: smali_classes12/j4/b.smali
+# Modded:  smali_classes13/j4/b.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes12/j4/b.smali
++++ smali_classes13/j4/b.smali
+@@ -341,7 +341,7 @@
+     invoke-virtual {p0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+     move-result-object v0
+     const/4 v1, 0x2
+-    const-string v2, "/cache/4838/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.airbnb.android:lottie:2.8.3.14-bugfix-83e2c"
++    const-string v2, "/cache/81555/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.airbnb.android:lottie:2.8.3.14-bugfix-83e2c"
+     invoke-static {v2, v0, v1}, Lcom/dragon/read/pathcollect/hook/JavaCollectCallback;->tryCollect(Ljava/lang/String;Ljava/lang/String;I)V
+     :cond_0
+     new-instance v0, Lcom/bytedance/security/android/aopcheck/PolarisFileInputStreamWrapper;

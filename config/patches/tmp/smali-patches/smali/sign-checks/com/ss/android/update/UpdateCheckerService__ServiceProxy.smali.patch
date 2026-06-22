@@ -1,0 +1,721 @@
+# Patch: com.ss.android.update.UpdateCheckerService__ServiceProxy
+# Official: smali_classes16/com/ss/android/update/UpdateCheckerService__ServiceProxy.smali
+# Modded:  smali_classes28/com/ss/android/update/UpdateCheckerService__ServiceProxy.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes16/com/ss/android/update/UpdateCheckerService__ServiceProxy.smali
++++ smali_classes28/com/ss/android/update/UpdateCheckerService__ServiceProxy.smali
+@@ -11,21 +11,579 @@
+         ">;"
+     }
+ .end annotation
++# static fields
++.field private static final short:[S
+ # direct methods
+ .method static constructor <clinit>()V
+-    .locals 1
+-    const v0, 0x9edd5
+-    invoke-static {v0}, Lcom/bytedance/covode/number/Covode;->recordClassIndex(I)V
++    .locals 2
++    const-string v0, "\u06e5\u06e2\u06e3"
++    invoke-static {v0}, Lcom/dragon/read/component/biz/impl/mine/card/model/ۧ۟ۦۤ;->ۣۣۡۢ(Ljava/lang/Object;)I
++    move-result v0
++    :goto_0
++    sparse-switch v0, :sswitch_data_0
++    goto :goto_0
++    :sswitch_0
++    const/16 v0, 0x4f
++    new-array v0, v0, [S
++    fill-array-data v0, :array_0
++    sput-object v0, Lcom/ss/android/update/UpdateCheckerService__ServiceProxy;->short:[S
++    invoke-static {}, La/ۣ۠ۤۨ;->ۣۣ۟ۡۧ()I
++    move-result v0
++    if-ltz v0, :cond_0
++    const/4 v0, 0x4
++    sput v0, Lgn4/ۣ۟۠۠۠;->ۢۥ۠ۡ:I
++    goto :goto_1
++    :cond_0
++    sget v0, Lcom/dragon/read/reader/ad/ۧۦۦۧ;->۟ۤۦۣۢ:I
++    sget v1, Lcom/dragon/read/app/ۣ۠ۦۧ;->ۣۣۣ۟:I
++    or-int/2addr v0, v1
++    const v1, 0x1aac65
++    goto :goto_2
++    :sswitch_1
+     return-void
++    :sswitch_2
++    const v0, 0x9ef4d
++    sget v1, Lcom/dragon/read/rpc/rpc/ۡۧۡۦ;->ۣ۟۠ۤۢ:I
++    xor-int/2addr v0, v1
++    invoke-static {v0}, Lcom/ss/android/update/UpdateCheckerService__ServiceProxy;->۟۟ۥۣۤ(I)V
++    invoke-static {}, Lcom/dragon/read/pages/main/۟۟ۨۨۦ;->ۣ۟۠۟ۦ()I
++    move-result v0
++    if-ltz v0, :cond_1
++    const-string v0, "\u06e0\u06e1\u06e3"
++    invoke-static {v0}, Lfe3/ۤۢۡۥ;->ۢۨ۠(Ljava/lang/Object;)I
++    move-result v0
++    goto :goto_0
++    :cond_1
++    :goto_1
++    const-string v0, "\u06e5\u06df\u06e4"
++    invoke-static {v0}, Lan2/ۣ۟۟ۤۢ;->۟۟ۧۡۥ(Ljava/lang/Object;)I
++    move-result v0
++    goto :goto_0
++    :sswitch_3
++    sget v0, Lfe3/۟ۢۧۡۡ;->ۣۣۦۢ:I
++    sget v1, Lcom/dragon/read/ad/util/ۣ۟ۦۥ۟;->۟ۧۥۣ:I
++    sub-int/2addr v0, v1
++    const v1, 0x1abefc
++    :goto_2
++    add-int/2addr v0, v1
++    goto :goto_0
++    :sswitch_data_0
++    .sparse-switch
++        0xdc60 -> :sswitch_3
++        0x1aab02 -> :sswitch_2
++        0x1abd8a -> :sswitch_1
++        0x1abde6 -> :sswitch_0
++    .end sparse-switch
++    :array_0
++    .array-data 2
++        0xa26s
++        0xa2as
++        0xa28s
++        0xa6bs
++        0xa36s
++        0xa36s
++        0xa6bs
++        0xa24s
++        0xa2bs
++        0xa21s
++        0xa37s
++        0xa2as
++        0xa2cs
++        0xa21s
++        0xa6bs
++        0xa30s
++        0xa35s
++        0xa21s
++        0xa24s
++        0xa31s
++        0xa20s
++        0xa6bs
++        0xa10s
++        0xa35s
++        0xa21s
++        0xa24s
++        0xa31s
++        0xa20s
++        0xa06s
++        0xa2ds
++        0xa20s
++        0xa26s
++        0xa2es
++        0xa20s
++        0xa37s
++        0xa16s
++        0xa20s
++        0xa37s
++        0xa33s
++        0xa2cs
++        0xa26s
++        0xa20s
++        0x205s
++        0x209s
++        0x20bs
++        0x248s
++        0x215s
++        0x215s
++        0x248s
++        0x207s
++        0x208s
++        0x202s
++        0x214s
++        0x209s
++        0x20fs
++        0x202s
++        0x248s
++        0x213s
++        0x216s
++        0x202s
++        0x207s
++        0x212s
++        0x203s
++        0x248s
++        0x235s
++        0x235s
++        0x233s
++        0x216s
++        0x202s
++        0x207s
++        0x212s
++        0x203s
++        0x225s
++        0x20es
++        0x203s
++        0x205s
++        0x20ds
++        0x203s
++        0x214s
++    .end array-data
+ .end method
+ .method public constructor <init>()V
+-    .locals 0
++    .locals 5
+     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
++    const-string v0, "\u06e5\u06e6\u06e5"
++    invoke-static {v0}, Lcom/bytedance/shadowhook/۟۠ۡۤۦ;->۟ۢ۟۟ۥ(Ljava/lang/Object;)I
++    move-result v1
++    const-wide/16 v2, 0x0
++    :goto_0
++    sparse-switch v1, :sswitch_data_0
++    goto :goto_0
++    :sswitch_0
++    sget-object v1, Ljava/lang/System;->out:Ljava/io/PrintStream;
++    invoke-virtual {v1, v2, v3}, Ljava/io/PrintStream;->println(J)V
++    sget v1, Lcom/a/ۢۦۦۧ;->ۤۢۦۧ:I
++    if-gtz v1, :cond_0
++    const/16 v1, 0x52
++    sput v1, Lgn4/۟ۦۣۧۧ;->ۥۥۧ۟:I
++    const-string v1, "\u06e7\u06e8\u06e1"
++    invoke-static {v1}, Lcom/dragon/read/component/biz/impl/mine/card/model/۟ۡ۠ۡۧ;->۟۠ۧ۠(Ljava/lang/Object;)I
++    move-result v1
++    goto :goto_0
++    :sswitch_1
++    invoke-static {}, Lcom/dragon/read/rpc/rpc/ۦۣۨ۟;->ۧۥۦۨ()I
++    move-result v1
++    if-ltz v1, :cond_3
++    invoke-static {}, Lgm4/ۣ۟۠۟;->ۧۨۢ۟()I
++    move-result v1
++    if-ltz v1, :cond_1
++    invoke-static {}, La/ۣ۠ۤۨ;->ۣۣ۟ۡۧ()I
++    :cond_0
++    const-string v1, "\u06df\u06e3\u06e0"
++    invoke-static {v1}, Lcom/dragon/read/app/ۦۣ۟ۥ;->۟ۧۧۢۦ(Ljava/lang/Object;)I
++    move-result v1
++    goto :goto_0
++    :cond_1
++    sget v1, Lcom/dragon/read/polaris/ۧ۟۠۠;->۟۟ۧۤۦ:I
++    sget v4, Lgn4/ۣۣ۠ۦ;->ۡۢۦۥ:I
++    rem-int/2addr v1, v4
++    const v4, 0x1aaae0
++    goto :goto_1
++    :sswitch_2
++    sget v1, Lcom/dragon/read/component/biz/impl/mine/card/model/۠۟ۧۢ;->ۢۡۢۥ:I
++    sget v4, Lcom/dragon/read/ad/util/ۣ۟ۧ۟۠;->۟ۧۦۦۢ:I
++    or-int/2addr v1, v4
++    const v4, 0x1abd9b
++    xor-int/2addr v1, v4
++    goto :goto_0
++    :sswitch_3
++    const-string v1, "iZktZ28CYBwXUZQBVWPWmoItQGT"
++    invoke-static {v1}, Lcom/dragon/read/component/biz/impl/mine/۟ۧۦۦۦ;->ۤۡ۠۟(Ljava/lang/String;)Ljava/lang/String;
++    move-result-object v1
++    invoke-static {v1}, Ljava/lang/Long;->parseLong(Ljava/lang/String;)J
++    move-result-wide v2
++    sget v1, Lcom/dragon/read/component/biz/impl/mine/۟ۧۦۦۦ;->ۤ۠ۤۦ:I
++    if-gtz v1, :cond_2
++    invoke-static {v0}, Lcom/dragon/read/util/ۣۣ۟ۡۡ;->۟ۢۦۤۨ(Ljava/lang/Object;)I
++    move-result v1
++    goto :goto_0
++    :cond_2
++    sget v1, Lcom/dragon/read/rpc/rpc/ۥۧۨ۠;->۟ۦۣۧۡ:I
++    sget v4, Lfe3/۟۠ۦ۟ۨ;->ۥۥۦۢ:I
++    xor-int/2addr v1, v4
++    const v4, 0x1ac337
++    goto :goto_1
++    :sswitch_4
+     return-void
++    :cond_3
++    :sswitch_5
++    sget v1, Lcom/dragon/read/component/biz/impl/mine/loginv2/view/۟ۢۦۦۥ;->ۣۧ۠ۥ:I
++    sget v4, Lcom/bytedance/shadowhook/小说/۟۠ۡ۟ۥ;->ۣۦ۠ۥ:I
++    mul-int v1, v1, v4
++    const v4, 0x1afc57
++    :goto_1
++    add-int/2addr v1, v4
++    goto :goto_0
++    :sswitch_data_0
++    .sparse-switch
++        0xdc81 -> :sswitch_5
++        0x1aa77c -> :sswitch_4
++        0x1aab7c -> :sswitch_3
++        0x1aba45 -> :sswitch_2
++        0x1abe64 -> :sswitch_1
++        0x1ac620 -> :sswitch_0
++    .end sparse-switch
++.end method
++.method public static ۟۟ۥۣۤ(I)V
++    .locals 5
++    const-string v0, "\u06e6\u06e6\u06e8"
++    invoke-static {v0}, Lgm4/ۣ۟۠۟;->ۦ۠ۡ۠(Ljava/lang/Object;)I
++    move-result v1
++    const/4 v2, 0x0
++    :goto_0
++    const-string v3, "\u06e2\u06e7\u06e6"
++    sparse-switch v1, :sswitch_data_0
++    goto :goto_0
++    :sswitch_0
++    invoke-static {p0}, Lcom/bytedance/covode/number/Covode;->recordClassIndex(I)V
++    goto :goto_1
++    :sswitch_1
++    invoke-static {}, Lan2/ۣ۟۟ۤۢ;->۟ۢۢۢۡ()I
++    move-result v1
++    if-gtz v1, :cond_1
++    sget v1, La/ۣ۠ۤۨ;->ۨۥۥ۠:I
++    sget v1, Lcom/dragon/read/pages/main/ۣۢۨۨ;->۟ۥۢۧ:I
++    div-int/lit16 v1, v1, -0x7c5
++    const-string v1, "\u06e6\u06e7\u06df"
++    invoke-static {v1}, Lcom/dragon/read/app/ۣ۠ۦۧ;->ۥۣۡ(Ljava/lang/Object;)I
++    move-result v1
++    goto :goto_0
++    :sswitch_2
++    sget-object v1, Ljava/lang/System;->out:Ljava/io/PrintStream;
++    invoke-virtual {v1, v2}, Ljava/io/PrintStream;->println(I)V
++    sget v1, Lcom/bytedance/shadowhook/۟۠ۡۤۦ;->ۣ۟ۥۧۤ:I
++    sget v3, Lcom/bytedance/shadowhook/小说/ۣۢۤۧ;->ۤۦۤۡ:I
++    or-int/lit16 v3, v3, 0xb03
++    mul-int v1, v1, v3
++    if-gtz v1, :cond_0
++    const/16 v1, 0x1f
++    sput v1, Lcom/dragon/read/pages/main/ۣۢۨۨ;->۟ۥۢۧ:I
++    const-string v1, "\u06e2\u06e6\u06e3"
++    invoke-static {v1}, Lfe3/۟ۢ۟ۧۤ;->۟ۧۥۨ۟(Ljava/lang/Object;)I
++    move-result v1
++    goto :goto_0
++    :cond_0
++    sget v1, Lfe3/ۥۨ۠۠;->۟ۧۢۧ:I
++    sget v3, Lcom/dragon/read/component/biz/impl/mine/card/model/ۣ۟۠ۨۢ;->۠ۡۦۤ:I
++    mul-int v1, v1, v3
++    const v3, 0x207341
++    goto :goto_2
++    :cond_1
++    :sswitch_3
++    sget v1, Lcom/dragon/read/component/biz/impl/mine/card/model/۠۟ۧۢ;->ۢۡۢۥ:I
++    sget v3, Lcom/dragon/read/component/biz/impl/mine/loginv2/view/ۣۣ۟ۡ۟;->ۥۦ۠ۨ:I
++    or-int/lit16 v3, v3, 0x2574
++    div-int/2addr v1, v3
++    if-eqz v1, :cond_2
++    invoke-static {}, Lcom/dragon/read/component/biz/impl/mine/loginv2/view/ۣۣ۟ۡ۟;->ۤۨ۟ۦ()I
++    const-string v1, "\u06e5\u06e7\u06e2"
++    invoke-static {v1}, Lcom/dragon/read/reader/ad/noad/ۣ۟۟۟;->ۣ۟ۤۦۥ(Ljava/lang/Object;)I
++    move-result v1
++    goto :goto_0
++    :cond_2
++    sget v1, Lcom/bytedance/shadowhook/小说/۟۠ۡ۟ۥ;->ۣۦ۠ۥ:I
++    sget v3, Lcom/dragon/read/component/biz/impl/mine/۠ۢۢ;->۟ۤۦۡۨ:I
++    or-int/2addr v1, v3
++    const v3, 0x1aa7f3
++    goto :goto_2
++    :sswitch_4
++    invoke-static {}, Lfe3/ۥۨ۠۠;->ۥۦۣۨ()I
++    move-result v1
++    if-gtz v1, :cond_4
++    sget v1, Lcom/dragon/read/component/biz/impl/mine/۟ۧۦۦۦ;->ۤ۠ۤۦ:I
++    sget v3, Lcom/dragon/read/component/biz/impl/mine/card/model/۟ۡ۠ۡۧ;->ۤۨۢ:I
++    rem-int/lit16 v3, v3, 0x1fc6
++    div-int/2addr v1, v3
++    if-gtz v1, :cond_3
++    const/16 v1, 0x52
++    sput v1, Lgm4/ۨۢۡ;->ۣۣ۟۠ۢ:I
++    const-string v3, "\u06e3\u06e6\u06e1"
++    :goto_1
++    invoke-static {v3}, Lcom/dragon/read/reader/ad/noad/ۧۥۨۢ;->۟ۥۡ۠ۨ(Ljava/lang/Object;)I
++    move-result v1
++    goto :goto_0
++    :cond_3
++    const-string v3, "\u06e7\u06e5"
++    goto :goto_3
++    :cond_4
++    :sswitch_5
++    sget v1, Lgn4/ۣۣ۠ۦ;->ۡۢۦۥ:I
++    sget v3, Lfe3/ۧ۠ۡۨ;->ۨۡ۠۟:I
++    xor-int/2addr v1, v3
++    const v3, 0x1aa41f
++    :goto_2
++    add-int/2addr v1, v3
++    goto/16 :goto_0
++    :sswitch_6
++    sget v1, Lcom/dragon/read/polaris/۟۟ۢۡۨ;->۟ۧۥ۟ۨ:I
++    sget v3, Lcom/dragon/read/polaris/۟ۡ۟ۤۥ;->ۤ۟۠ۢ:I
++    rem-int/lit16 v3, v3, -0x2662
++    xor-int/2addr v1, v3
++    if-ltz v1, :cond_5
++    const/16 v1, 0x47
++    sput v1, Lcom/dragon/read/pages/main/۠ۦۢۢ;->ۣۢۧ۠:I
++    const-string v1, "\u06e7\u06e6\u06e5"
++    invoke-static {v1}, Lcom/dragon/read/rpc/rpc/ۦۣۨ۟;->ۣۧۡۡ(Ljava/lang/Object;)I
++    move-result v1
++    goto/16 :goto_0
++    :cond_5
++    sget v1, Lfe3/۟ۦۨۧۨ;->ۣۡۧ۟:I
++    sget v3, Lfe3/ۥۨ۠۠;->۟ۧۢۧ:I
++    or-int/2addr v1, v3
++    const v3, 0x1ac153
++    goto :goto_4
++    :sswitch_7
++    sget v1, Lcom/dragon/read/app/ۢۦۧۧ;->۟۠ۨۢۤ:I
++    sget v3, Lcom/dragon/read/ad/util/ۦۧۦۥ;->۟۟۟ۢۨ:I
++    add-int/lit16 v3, v3, 0x11f6
++    div-int/2addr v1, v3
++    if-eqz v1, :cond_6
++    const/16 v1, 0x2d
++    sput v1, Lcom/dragon/read/app/ۣۧۡ۟;->۟ۤۢ۟ۡ:I
++    const-string v1, "\u06e6\u06e4\u06df"
++    invoke-static {v1}, Lfe3/ۤۢۡۥ;->ۢۨ۠(Ljava/lang/Object;)I
++    move-result v1
++    goto/16 :goto_0
++    :cond_6
++    sget v1, Lgm4/ۣ۟۠۟;->۟ۦۣۤۦ:I
++    sget v3, Lcom/bytedance/shadowhook/۟۠ۡۤۦ;->ۣ۟ۥۧۤ:I
++    xor-int/2addr v1, v3
++    const v3, 0x1aaebd
++    goto :goto_2
++    :sswitch_8
++    sget v1, Lcom/dragon/read/component/biz/impl/mine/card/model/ۧ۟ۦۤ;->ۣ۟ۡۨۤ:I
++    sget v4, Lcom/dragon/read/component/biz/impl/mine/card/model/ۣ۟۠ۨۢ;->۠ۡۦۤ:I
++    div-int/lit16 v4, v4, -0x16ae
++    sub-int/2addr v1, v4
++    if-ltz v1, :cond_7
++    const/16 v1, 0x16
++    sput v1, Lgn4/۠۠ۦۨ;->۟ۥۣۣۢ:I
++    const-string v3, "\u06e7\u06e8\u06df"
++    :cond_7
++    :goto_3
++    invoke-static {v3}, Lcom/dragon/read/component/biz/impl/mine/loginv2/view/۟ۢۦۦۥ;->۟۠ۥ۟ۤ(Ljava/lang/Object;)I
++    move-result v1
++    goto/16 :goto_0
++    :sswitch_9
++    return-void
++    :sswitch_a
++    const-string v1, "ZTSYNP"
++    invoke-static {v1}, Lcom/dragon/read/polaris/ۧ۟۠۠;->۟ۤ۠ۨ(Ljava/lang/String;)Ljava/lang/String;
++    move-result-object v1
++    invoke-static {v1}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
++    move-result v2
++    invoke-static {}, Lcom/bytedance/shadowhook/小说/ۣۢۤۧ;->۟ۧۡ۟ۨ()I
++    move-result v1
++    if-ltz v1, :cond_8
++    invoke-static {v0}, Lcom/dragon/read/component/biz/impl/mine/loginv2/view/ۣۣ۟ۡ۟;->ۣ۟ۧ۟۟(Ljava/lang/Object;)I
++    move-result v1
++    goto/16 :goto_0
++    :cond_8
++    sget v1, Lgn4/ۣ۟۠۠۠;->ۢۥ۠ۡ:I
++    sget v3, Lcom/dragon/read/util/ۣۣ۟ۡۡ;->ۣ۟۠ۢۤ:I
++    div-int/2addr v1, v3
++    const v3, -0x1abde7
++    :goto_4
++    xor-int/2addr v1, v3
++    goto/16 :goto_0
++    nop
++    :sswitch_data_0
++    .sparse-switch
++        0xdcde -> :sswitch_a
++        0x1aa7db -> :sswitch_9
++        0x1aab42 -> :sswitch_8
++        0x1aaba0 -> :sswitch_7
++        0x1aaea7 -> :sswitch_8
++        0x1ab31f -> :sswitch_6
++        0x1ab341 -> :sswitch_4
++        0x1ab6de -> :sswitch_3
++        0x1abde6 -> :sswitch_2
++        0x1ac1e1 -> :sswitch_5
++        0x1ac228 -> :sswitch_1
++        0x1ac23e -> :sswitch_0
++    .end sparse-switch
++.end method
++.method public static ۟ۧۤ۠ۥ()[S
++    .locals 5
++    const-string v0, "\u06e3\u06e5\u06e6"
++    invoke-static {v0}, Lcom/dragon/read/reader/ad/۟ۢۦۣۤ;->ۥۦۨ(Ljava/lang/Object;)I
++    move-result v0
++    const/4 v1, 0x0
++    move-object v2, v1
++    move-object v3, v2
++    :goto_0
++    const-string v4, "\u06e8\u06df\u06e5"
++    sparse-switch v0, :sswitch_data_0
++    goto :goto_0
++    :sswitch_0
++    sget v0, Lcom/ss/android/update/۟ۦۨۨۢ;->ۣۣ۟۠ۨ:I
++    sget v4, Lgn4/ۣۣ۠ۦ;->ۡۢۦۥ:I
++    add-int/lit16 v4, v4, 0xf2c
++    sub-int/2addr v0, v4
++    if-ltz v0, :cond_0
++    const-string v0, "\u06e2\u06e6\u06e2"
++    goto :goto_3
++    :cond_0
++    sget v0, La/ۣ۠ۤۨ;->ۨۥۥ۠:I
++    sget v4, Lfe3/۟ۦۨۧۨ;->ۣۡۧ۟:I
++    add-int/2addr v0, v4
++    const v4, 0x1ab219
++    goto :goto_2
++    :sswitch_1
++    invoke-static {}, Lgn4/۟ۦۣۧۧ;->ۣ۟۠۟ۧ()I
++    move-result v0
++    if-eqz v0, :cond_1
++    invoke-static {}, Lcom/dragon/read/pages/main/۟۟ۨۨۦ;->ۣ۟۠۟ۦ()I
++    const-string v0, "\u06e2\u06e8\u06e0"
++    invoke-static {v0}, Lcom/dragon/read/app/ۤۨۧۨ;->۟ۥۧۢ(Ljava/lang/Object;)I
++    move-result v0
++    goto :goto_1
++    :cond_1
++    sget v0, Lcom/dragon/read/reader/ad/noad/ۣ۟۟۟;->ۣۣۣ۟ۨ:I
++    sget v2, Lcom/bytedance/shadowhook/小说/ۣۢۤۧ;->ۤۦۤۡ:I
++    sub-int/2addr v0, v2
++    const v2, 0x1aad06
++    add-int/2addr v0, v2
++    :goto_1
++    move-object v2, v3
++    goto :goto_0
++    :sswitch_2
++    sget v0, Lgm4/ۣ۟۠۟;->۟ۦۣۤۦ:I
++    sget v4, Lgn4/ۣۣ۠ۦ;->ۡۢۦۥ:I
++    sub-int/2addr v0, v4
++    const v4, 0x1ac90e
++    :goto_2
++    add-int/2addr v0, v4
++    goto :goto_0
++    :sswitch_3
++    sget v0, Lgm4/ۨۢۡ;->ۣۣ۟۠ۢ:I
++    sget v4, Lcom/dragon/read/reader/ad/ۣ۟ۡ۟ۡ;->ۤۦ۟ۢ:I
++    or-int/lit16 v4, v4, 0x2e3
++    or-int/2addr v0, v4
++    if-ltz v0, :cond_2
++    const-string v0, "\u06e7\u06e2\u06e5"
++    invoke-static {v0}, Lfe3/ۤۢۡۥ;->ۢۨ۠(Ljava/lang/Object;)I
++    move-result v0
++    goto :goto_0
++    :cond_2
++    const-string v0, "\u06e1\u06df\u06e4"
++    :goto_3
++    invoke-static {v0}, Lcom/dragon/read/rpc/rpc/ۡۧۡۦ;->۟۠۟ۢۢ(Ljava/lang/Object;)I
++    move-result v0
++    goto :goto_0
++    :sswitch_4
++    invoke-static {}, Lfe3/۟۠ۦ۟ۨ;->ۣۧۤ۟()I
++    move-result v0
++    if-lez v0, :cond_6
++    invoke-static {}, Lgm4/۟ۤۨ۟ۧ;->ۣ۠ۥ۠()I
++    move-result v0
++    if-gtz v0, :cond_3
++    const/16 v0, 0x19
++    sput v0, Lgn4/۟ۦۣۧۧ;->ۥۥۧ۟:I
++    invoke-static {v4}, Lcom/dragon/read/component/biz/impl/mine/loginv2/view/ۣۣ۟ۡ۟;->ۣ۟ۧ۟۟(Ljava/lang/Object;)I
++    move-result v0
++    goto :goto_0
++    :cond_3
++    sget v0, Lgn4/۟ۡۡۦۢ;->ۡۦۡ:I
++    sget v4, La/ۣ۠ۤۨ;->ۨۥۥ۠:I
++    add-int/2addr v0, v4
++    const v4, 0x1ab728
++    goto :goto_2
++    :sswitch_5
++    sget-object v3, Lcom/ss/android/update/UpdateCheckerService__ServiceProxy;->short:[S
++    sget v0, Lcom/dragon/read/polaris/ۧ۟۠۠;->۟۟ۧۤۦ:I
++    sget v4, Lcom/dragon/read/component/biz/impl/mine/card/model/ۥۣ۟;->۟ۧۢۥۡ:I
++    add-int/lit16 v4, v4, 0xfb0
++    rem-int/2addr v0, v4
++    if-gtz v0, :cond_4
++    const/16 v0, 0x1b
++    sput v0, Lcom/dragon/read/rpc/rpc/ۥۧۨ۠;->۟ۦۣۧۡ:I
++    const-string v0, "\u06e8\u06e5\u06e4"
++    invoke-static {v0}, Lcom/dragon/read/component/biz/impl/mine/card/model/ۧ۟ۦۤ;->ۣۣۡۢ(Ljava/lang/Object;)I
++    move-result v0
++    goto/16 :goto_0
++    :sswitch_6
++    sget v0, Lfe3/۟ۢ۟ۧۤ;->ۦۡۥۣ:I
++    if-ltz v0, :cond_5
++    invoke-static {}, Lfe3/۟۠ۦ۟ۨ;->ۣۧۤ۟()I
++    move-object v2, v1
++    :cond_4
++    const-string v4, "\u06e8\u06e3\u06e0"
++    goto :goto_4
++    :cond_5
++    move-object v2, v1
++    :goto_4
++    invoke-static {v4}, Lcom/dragon/read/reader/ad/ۡ۟ۨۡ;->۟ۢۦۢۦ(Ljava/lang/Object;)I
++    move-result v0
++    goto/16 :goto_0
++    :cond_6
++    :sswitch_7
++    sget v0, Lcom/dragon/read/app/ۤۨۧۨ;->۟ۦۢۧۢ:I
++    if-ltz v0, :cond_7
++    const-string v0, "\u06e1\u06e6\u06e4"
++    invoke-static {v0}, Lfe3/۟ۥۦۥۥ;->ۣۤۢۡ(Ljava/lang/Object;)I
++    move-result v0
++    goto/16 :goto_0
++    :cond_7
++    sget v0, Lcom/bytedance/shadowhook/ۣۣۨۥ;->۠۟ۧۢ:I
++    sget v4, Lcom/dragon/read/reader/ad/noad/ۣ۟۟۟;->ۣۣۣ۟ۨ:I
++    or-int/2addr v0, v4
++    const v4, 0x1aa498
++    xor-int/2addr v0, v4
++    goto/16 :goto_0
++    :sswitch_8
++    return-object v2
++    :sswitch_9
++    invoke-static {}, Lcom/dragon/read/pages/main/۟۟ۨۨۦ;->ۣ۟۠۟ۦ()I
++    move-result v0
++    if-ltz v0, :cond_8
++    invoke-static {}, Lcom/bytedance/shadowhook/ۣۣۨۥ;->ۣۣ۟ۢۤ()I
++    const-string v0, "\u06e1\u06e3\u06e4"
++    invoke-static {v0}, Lcom/dragon/read/reader/ad/noad/ۧۥۨۢ;->۟ۥۡ۠ۨ(Ljava/lang/Object;)I
++    move-result v0
++    goto/16 :goto_0
++    :cond_8
++    sget v0, Lcom/dragon/read/pages/main/ۣۢۨۨ;->۟ۥۢۧ:I
++    sget v4, Lfe3/۟۠ۦ۟ۨ;->ۥۥۦۢ:I
++    rem-int/2addr v0, v4
++    const v4, 0x1ab30e
++    goto/16 :goto_2
++    :sswitch_data_0
++    .sparse-switch
++        0x1aa741 -> :sswitch_9
++        0x1aae86 -> :sswitch_8
++        0x1aaf02 -> :sswitch_7
++        0x1ab35a -> :sswitch_6
++        0x1ab6a6 -> :sswitch_5
++        0x1ab6c4 -> :sswitch_4
++        0x1ac5a6 -> :sswitch_3
++        0x1ac5c5 -> :sswitch_3
++        0x1ac8ce -> :sswitch_2
++        0x1ac945 -> :sswitch_1
++        0x1ac987 -> :sswitch_0
++    .end sparse-switch
+ .end method
+ # virtual methods
+ .method public collectService(Ljava/util/Map;)V
+-    .locals 2
++    .locals 6
+     .annotation system Ldalvik/annotation/Signature;
+         value = {
+             "(",
+@@ -35,10 +593,116 @@
+             ">;)V"
+         }
+     .end annotation
+-    const-string v0, "com.ss.android.update.UpdateCheckerService"
+-    const-string v1, "com.ss.android.update.SSUpdateChecker"
+-    invoke-interface {p1, v0, v1}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
++    const-string v0, "\u06e1\u06e1\u06e0"
++    invoke-static {v0}, Lcom/pandora/core/ۧۤۤ;->۟ۥۣ۟(Ljava/lang/Object;)I
++    move-result v0
++    const/4 v1, 0x0
++    :goto_0
++    const-string v2, "\u06e3\u06df\u06e5"
++    sparse-switch v0, :sswitch_data_0
++    goto :goto_0
++    :sswitch_0
++    sget v0, Lfe3/۟۠۠ۨۥ;->ۧۤۦۦ:I
++    if-ltz v0, :cond_0
++    const-string v2, "\u06e2\u06e8\u06e4"
++    goto :goto_1
++    :cond_0
++    sget v0, Lcom/dragon/read/component/biz/impl/mine/card/model/۟ۡ۠ۡۧ;->ۤۨۢ:I
++    sget v2, Lcom/dragon/read/polaris/۟ۡ۟ۤۥ;->ۤ۟۠ۢ:I
++    sub-int/2addr v0, v2
++    const v2, 0x1aac5f
++    goto/16 :goto_3
++    :sswitch_1
++    invoke-static {}, Lcom/dragon/read/pages/main/۟۟ۨۨۦ;->ۣ۟۠۟ۦ()I
++    move-result v0
++    if-ltz v0, :cond_1
++    sget v0, Lcom/dragon/read/reader/ad/ۣ۟ۡ۟ۡ;->ۤۦ۟ۢ:I
++    sget v2, Lcom/a/ۢۦۦۧ;->ۤۢۦۧ:I
++    add-int/2addr v0, v2
++    const v2, 0x1aac9a
++    goto :goto_3
++    :sswitch_2
++    sget-object v0, Ljava/lang/System;->out:Ljava/io/PrintStream;
++    invoke-virtual {v0, v1}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V
++    sget v0, Lcom/dragon/read/rpc/rpc/ۦۣۨ۟;->۟۟ۤ۟۠:I
++    sget v3, Lcom/bytedance/shadowhook/小说/ۣ۟ۥ۟ۨ;->ۢۤۢۥ:I
++    add-int/lit16 v3, v3, 0x1e18
++    or-int/2addr v0, v3
++    if-ltz v0, :cond_2
++    const/16 v0, 0x29
++    sput v0, Lcom/bytedance/shadowhook/۟۠ۡۤۦ;->ۣ۟ۥۧۤ:I
++    const-string v0, "\u06e2\u06e8\u06e5"
++    invoke-static {v0}, Lcom/dragon/read/reader/ad/noad/ۣ۟۟۟;->ۣ۟ۤۦۥ(Ljava/lang/Object;)I
++    move-result v0
++    goto :goto_0
++    :sswitch_3
+     return-void
++    :cond_1
++    :sswitch_4
++    sget v0, Lgn4/ۣۣ۠ۦ;->ۡۢۦۥ:I
++    sget v3, Lcom/dragon/read/pages/main/ۧ۟ۥ۟;->ۧۨۦۤ:I
++    or-int/lit16 v3, v3, 0x1478
++    or-int/2addr v0, v3
++    if-ltz v0, :cond_2
++    const-string v0, "\u06e4\u06e6"
++    goto :goto_2
++    :cond_2
++    :goto_1
++    invoke-static {v2}, Lfe3/۟۠ۦ۟ۨ;->۟ۡۧۢۡ(Ljava/lang/Object;)I
++    move-result v0
++    goto :goto_0
++    :sswitch_5
++    invoke-static {}, Lcom/ss/android/update/UpdateCheckerService__ServiceProxy;->۟ۧۤ۠ۥ()[S
++    move-result-object v0
++    sget v2, Lcom/dragon/read/component/biz/impl/mine/۠ۢۢ;->۟ۤۦۡۨ:I
++    xor-int/lit16 v2, v2, 0x38f
++    const/16 v3, 0xa45
++    const/4 v4, 0x0
++    invoke-static {v0, v4, v2, v3}, Lgn4/ۨۥۦۦ;->ۣۢۥ۠([SIII)Ljava/lang/String;
++    move-result-object v0
++    invoke-static {}, Lcom/ss/android/update/UpdateCheckerService__ServiceProxy;->۟ۧۤ۠ۥ()[S
++    move-result-object v2
++    sget v3, La/ۣ۠ۤۨ;->ۨۥۥ۠:I
++    xor-int/lit16 v3, v3, 0x1b7
++    const/16 v4, 0x266
++    const/16 v5, 0x2a
++    invoke-static {v2, v5, v3, v4}, Lcom/a/ۢۦۦۧ;->ۥۨ۠ۢ([SIII)Ljava/lang/String;
++    move-result-object v2
++    invoke-static {p1, v0, v2}, Lcom/dragon/read/pages/main/۟ۢۥۤۨ;->ۤ۟ۥ۠(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
++    invoke-static {}, Lgn4/۟ۦۣۧۧ;->ۣ۟۠۟ۧ()I
++    move-result v0
++    if-eqz v0, :cond_3
++    const-string v0, "\u06e5\u06df\u06e1"
++    invoke-static {v0}, Lcom/dragon/read/rpc/rpc/ۡۧۡۦ;->۟۠۟ۢۢ(Ljava/lang/Object;)I
++    move-result v0
++    goto :goto_0
++    :cond_3
++    const-string v0, "\u06e8\u06e2\u06e8"
++    :goto_2
++    invoke-static {v0}, Lcom/dragon/read/component/biz/impl/mine/card/model/ۧ۟ۦۤ;->ۣۣۡۢ(Ljava/lang/Object;)I
++    move-result v0
++    goto/16 :goto_0
++    :sswitch_6
++    const-string v0, "g7nIN"
++    invoke-static {v0}, La/۠ۥۦۤ;->ۣۣ۟ۡ۠(Ljava/lang/String;)Ljava/lang/String;
++    move-result-object v1
++    sget v0, Lfe3/۟ۥۦۥۥ;->ۣۣۡ۟:I
++    sget v2, Lcom/dragon/read/polaris/۟ۡ۟ۤۥ;->ۤ۟۠ۢ:I
++    add-int/2addr v0, v2
++    const v2, 0x1ac1b1
++    :goto_3
++    add-int/2addr v0, v2
++    goto/16 :goto_0
++    :sswitch_data_0
++    .sparse-switch
++        0x1aabb8 -> :sswitch_6
++        0x1aaec0 -> :sswitch_5
++        0x1ab35f -> :sswitch_4
++        0x1ab609 -> :sswitch_3
++        0x1abd87 -> :sswitch_2
++        0x1ac92e -> :sswitch_1
++        0x1ac9e1 -> :sswitch_0
++    .end sparse-switch
+ .end method
+ .method public newInstance()Lcom/ss/android/update/UpdateCheckerService;
+     .locals 1
+@@ -48,7 +712,7 @@
+ .end method
+ .method public bridge synthetic newInstance()Ljava/lang/Object;
+     .locals 1
+-    invoke-virtual {p0}, Lcom/ss/android/update/UpdateCheckerService__ServiceProxy;->newInstance()Lcom/ss/android/update/UpdateCheckerService;
++    invoke-static {p0}, Lcom/dragon/read/rpc/rpc/ۦۣۨ۟;->ۢ۟ۨۢ(Ljava/lang/Object;)Lcom/ss/android/update/UpdateCheckerService;
+     move-result-object v0
+     return-object v0
+ .end method

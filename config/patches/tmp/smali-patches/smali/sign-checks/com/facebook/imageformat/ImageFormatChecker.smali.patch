@@ -1,0 +1,16 @@
+# Patch: com.facebook.imageformat.ImageFormatChecker
+# Official: smali_classes14/com/facebook/imageformat/ImageFormatChecker.smali
+# Modded:  smali_classes15/com/facebook/imageformat/ImageFormatChecker.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes14/com/facebook/imageformat/ImageFormatChecker.smali
++++ smali_classes15/com/facebook/imageformat/ImageFormatChecker.smali
+@@ -118,7 +118,7 @@
+     invoke-virtual {v0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+     move-result-object v0
+     const/4 v1, 0x2
+-    const-string v2, "/cache/4838/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.bytedance.fresco:imagepipeline-base:1.37.4-a0500"
++    const-string v2, "/cache/81555/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.bytedance.fresco:imagepipeline-base:1.37.4-a0500"
+     invoke-static {v2, v0, v1}, Lcom/dragon/read/pathcollect/hook/JavaCollectCallback;->tryCollect(Ljava/lang/String;Ljava/lang/String;I)V
+     new-instance v0, Lcom/bytedance/security/android/aopcheck/PolarisFileInputStreamWrapper;
+     invoke-direct {v0, p0}, Lcom/bytedance/security/android/aopcheck/PolarisFileInputStreamWrapper;-><init>(Ljava/lang/String;)V

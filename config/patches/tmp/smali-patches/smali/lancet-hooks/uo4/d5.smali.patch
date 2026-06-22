@@ -1,0 +1,16 @@
+# Patch: uo4.d5
+# Official: smali_classes9/uo4/d5.smali
+# Modded:  smali_classes10/uo4/d5.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes9/uo4/d5.smali
++++ smali_classes10/uo4/d5.smali
+@@ -2181,7 +2181,7 @@
+     invoke-interface {v0, v2, v1}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+     move-result-object v1
+     sget-object v3, Lcom/dragon/read/util/i8;->a:Lcom/dragon/read/util/i8;
+-    const-string v4, "7.2.4.32"
++    const-string v4, "7.2.4.19"
+     invoke-virtual {v3, v4, v1}, Lcom/dragon/read/util/i8;->a(Ljava/lang/String;Ljava/lang/String;)I
+     move-result v3
+     const-string v5, "growth"

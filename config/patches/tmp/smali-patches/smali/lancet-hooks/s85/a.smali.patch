@@ -1,0 +1,16 @@
+# Patch: s85.a
+# Official: smali_classes13/s85/a.smali
+# Modded:  smali_classes14/s85/a.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes13/s85/a.smali
++++ smali_classes14/s85/a.smali
+@@ -38,7 +38,7 @@
+     invoke-virtual {p0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+     move-result-object v0
+     const/4 v1, 0x2
+-    const-string v2, "/cache/4838/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/:biz:community:community-impl"
++    const-string v2, "/cache/81555/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/:biz:community:community-impl"
+     invoke-static {v2, v0, v1}, Lcom/dragon/read/pathcollect/hook/JavaCollectCallback;->tryCollect(Ljava/lang/String;Ljava/lang/String;I)V
+     :cond_0
+     new-instance v0, Lcom/bytedance/security/android/aopcheck/PolarisFileInputStreamWrapper;

@@ -1,0 +1,16 @@
+# Patch: com.ss.android.socialbase.downloader.core.DownloadSingleResponseHandler
+# Official: smali_classes16/com/ss/android/socialbase/downloader/core/DownloadSingleResponseHandler.smali
+# Modded:  smali_classes16/com/ss/android/socialbase/downloader/core/DownloadSingleResponseHandler.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes16/com/ss/android/socialbase/downloader/core/DownloadSingleResponseHandler.smali
++++ smali_classes16/com/ss/android/socialbase/downloader/core/DownloadSingleResponseHandler.smali
+@@ -145,7 +145,7 @@
+     invoke-virtual {p0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+     move-result-object v0
+     const/4 v1, 0x2
+-    const-string v2, "/cache/4838/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.bytedance.ies.social.base:downloader:1.3.8.103-ee0ca"
++    const-string v2, "/cache/81555/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.bytedance.ies.social.base:downloader:1.3.8.103-ee0ca"
+     invoke-static {v2, v0, v1}, Lcom/dragon/read/pathcollect/hook/JavaCollectCallback;->tryCollect(Ljava/lang/String;Ljava/lang/String;I)V
+     :cond_0
+     new-instance v0, Lcom/bytedance/security/android/aopcheck/PolarisFileInputStreamWrapper;

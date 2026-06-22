@@ -1,0 +1,16 @@
+# Patch: f63.a3
+# Official: smali_classes18/f63/a3.smali
+# Modded:  smali_classes19/f63/a3.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes18/f63/a3.smali
++++ smali_classes19/f63/a3.smali
+@@ -509,7 +509,7 @@
+     invoke-virtual {v0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+     move-result-object v0
+     const/4 v1, 0x2
+-    const-string v2, "/cache/4838/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/:biz:base:hybrid:jsb:jsb-impl"
++    const-string v2, "/cache/81555/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/:biz:base:hybrid:jsb:jsb-impl"
+     invoke-static {v2, v0, v1}, Lcom/dragon/read/pathcollect/hook/JavaCollectCallback;->tryCollect(Ljava/lang/String;Ljava/lang/String;I)V
+     new-instance v0, Lcom/bytedance/security/android/aopcheck/PolarisFileInputStreamWrapper;
+     invoke-direct {v0, p0}, Lcom/bytedance/security/android/aopcheck/PolarisFileInputStreamWrapper;-><init>(Ljava/lang/String;)V

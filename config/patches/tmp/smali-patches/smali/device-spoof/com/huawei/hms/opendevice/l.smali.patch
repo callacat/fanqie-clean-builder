@@ -1,0 +1,16 @@
+# Patch: com.huawei.hms.opendevice.l
+# Official: smali_classes14/com/huawei/hms/opendevice/l.smali
+# Modded:  smali_classes15/com/huawei/hms/opendevice/l.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes14/com/huawei/hms/opendevice/l.smali
++++ smali_classes15/com/huawei/hms/opendevice/l.smali
+@@ -675,7 +675,7 @@
+     invoke-virtual {p0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+     move-result-object v0
+     const/4 v1, 0x4
+-    const-string v2, "/cache/4838/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.huawei.hms:opendevice:6.13.0.300-17ef6"
++    const-string v2, "/cache/81555/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.huawei.hms:opendevice:6.13.0.300-17ef6"
+     invoke-static {v2, v0, v1}, Lcom/dragon/read/pathcollect/hook/JavaCollectCallback;->tryCollect(Ljava/lang/String;Ljava/lang/String;I)V
+     :cond_0
+     new-instance v0, Lcom/bytedance/security/android/aopcheck/PolarisFileOutputStreamWrapper;

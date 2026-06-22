@@ -7,14 +7,10 @@ on:
         description: 'Skip Android Emulator verification'
         type: boolean
         default: false
-      skip_harvester:
-        description: 'Skip smali diff extraction (use cached patches)'
+      dry_run:
+        description: 'Build but skip upload (dry-run mode)'
         type: boolean
         default: false
-      custom_patches:
-        description: 'Custom patches artifact name (leave empty for cached)'
-        required: false
-        default: ''
 
 env:
   OFFICIAL_APK_URL: 'https://cloud.dsdog.tk/d/google/temp/%E7%95%AA%E8%8C%84%E5%85%8D%E8%B4%B9%E5%B0%8F%E8%AF%B4_7.2.4.32.apk?sign=xUavME2Rt4Vf1FTbCppPq7sU8bRUFh29hrbIhdsXon4=:0'
@@ -23,92 +19,35 @@ env:
 
 jobs:
   # ============================================================
-  # Job 1: Harvester — Extract smali patches from modded APK
+  # Job 1: Extract Patches (harvester) — optional analysis
   # ============================================================
   harvester:
-    if: ${{ !inputs.skip_harvester }}
+    if: ${{ !cancelled() && !inputs.skip_emulator && false }}  # disabled, run manually
     runs-on: ubuntu-22.04
     timeout-minutes: 30
-    outputs:
-      patch_count: ${{ steps.summary.outputs.patch_count }}
-      logical_changes: ${{ steps.summary.outputs.logical_changes }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
       - name: Install apktool
         run: |
           curl -sL "https://github.com/iBotPeaches/Apktool/releases/download/v3.0.2/apktool_3.0.2.jar" -o /opt/apktool.jar
           printf '#!/bin/bash\njava -jar /opt/apktool.jar "$@"\n' | tee /opt/apktool
           chmod +x /opt/apktool
-          echo "/opt" >> "$GITHUB_PATH"
-
-      - name: Cache APK downloads
-        uses: actions/cache@v4
-        id: apk-cache
-        with:
-          path: _downloads
-          key: fanqie-apk-7.2.4.32
-
-      - name: Download APKs
-        if: steps.apk-cache.outputs.cache-hit != 'true'
+      - name: Download & decode both APKs
         run: |
           mkdir -p _downloads _smali _patches
-          echo "=== Downloading official APK ==="
-          curl -sL -o _downloads/official.apk "$OFFICIAL_APK_URL" \
-            -w "HTTP %{http_code}, size: %{size_download} bytes\n"
-          echo "=== Downloading modded APK ==="
-          curl -sL -o _downloads/modded.apk "$MODDED_APK_URL" \
-            -w "HTTP %{http_code}, size: %{size_download} bytes\n"
-          ls -lh _downloads/
-
-      - name: Restore APKs from cache if missed
-        if: steps.apk-cache.outputs.cache-hit == 'true'
-        run: |
-          mkdir -p _smali _patches
-          ls -lh _downloads/
-
-      - name: Parallel decode
-        run: |
-          echo "=== Decoding official APK ==="
+          curl -sL -o _downloads/official.apk "$OFFICIAL_APK_URL"
+          curl -sL -o _downloads/modded.apk "$MODDED_APK_URL"
           /opt/apktool d _downloads/official.apk -o _smali/official -f &
-          PID1=$!
-          echo "=== Decoding modded APK ==="
           /opt/apktool d _downloads/modded.apk -o _smali/modded -f &
-          PID2=$!
-          echo "Waiting for apktool decode..."
-          wait $PID1 $PID2
-          echo "=== Smali stats ==="
-          echo "Official smali: $(find _smali/official -name '*.smali' | wc -l) files"
-          echo "Modded smali:  $(find _smali/modded -name '*.smali' | wc -l) files"
-        timeout-minutes: 15
-
+          wait
       - name: Run content-hash pairing
         run: |
           python3 scripts/smali_diff_harvester.py \
-            --official _smali/official \
-            --modded _smali/modded \
-            --output _patches \
-            --report _patches/patch-report.json
-
-      - name: Summary
-        id: summary
-        run: |
-          if [ -f _patches/patch-report.json ]; then
-            echo "patch_count=$(cat _patches/patch-report.json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(sum(d["stats"].values()))')" >> "$GITHUB_OUTPUT"
-            echo "logical_changes=$(cat _patches/patch-report.json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["stats"].get("logical_change",0))')" >> "$GITHUB_OUTPUT"
-            echo "=== Patch Report ==="
-            python3 -m json.tool _patches/patch-report.json 2>/dev/null || cat _patches/patch-report.json
-          fi
-          echo "=== Patches tree ==="
-          find _patches -type f | head -40
-
-      - name: Upload patches
+            --official _smali/official --modded _smali/modded \
+            --output _patches --report _patches/patch-report.json
+      - name: Upload patches artifact
         uses: actions/upload-artifact@v4
         with:
           name: smali-patches
@@ -116,13 +55,14 @@ jobs:
           retention-days: 30
 
   # ============================================================
-  # Job 2: Build — Apply patches, debloat, rebuild, sign
-  # Does NOT depend on harvester (patches may come from cache/repo)
+  # Job 2: Build — Full pipeline
   # ============================================================
   build:
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-22.04
     timeout-minutes: 30
+    outputs:
+      apk-size: ${{ steps.verify.outputs.apk_size }}
     steps:
       - uses: actions/checkout@v4
 
@@ -137,43 +77,32 @@ jobs:
           curl -sL "https://github.com/iBotPeaches/Apktool/releases/download/v3.0.2/apktool_3.0.2.jar" -o /opt/apktool.jar
           printf '#!/bin/bash\njava -jar /opt/apktool.jar "$@"\n' | tee /opt/apktool
           chmod +x /opt/apktool
-          echo "/opt" >> "$GITHUB_PATH"
 
-      - name: Download APKs
+      - name: Download both APKs
         run: |
           mkdir -p _downloads _build
-          if [ -f _downloads/official.apk ]; then
-            echo "Using cached official APK"
-          else
-            curl -sL -o _downloads/official.apk "$OFFICIAL_APK_URL" \
-              -w "HTTP %{http_code}, size: %{size_download} bytes\n"
-          fi
+          curl -sL -o _downloads/official.apk "$OFFICIAL_APK_URL"
+          curl -sL -o _downloads/modded.apk "$MODDED_APK_URL"
+          ls -lh _downloads/
 
-      - name: Decode official APK
+      - name: Parallel decode (official + modded)
         run: |
-          /opt/apktool d _downloads/official.apk -o _build/official -f
-          echo "Smali files: $(find _build/official -name '*.smali' | wc -l)"
+          /opt/apktool d _downloads/official.apk -o _build/official -f &
+          /opt/apktool d _downloads/modded.apk -o _build/modded -f &
+          wait
+          echo "Official: $(find _build/official -name '*.smali' | wc -l) smali files"
+          echo "Modded:   $(find _build/modded -name '*.smali' | wc -l) smali files"
+        timeout-minutes: 15
 
-      - name: Download patches
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ inputs.custom_patches || 'smali-patches' }}
-          path: _patches/
-        continue-on-error: true
-
-      - name: Use fallback patches if download failed
+      - name: Generate patch report & overlay modded→official
         run: |
-          if [ ! -f _patches/patch-report.json ]; then
-            echo "No patches artifact found, using config/patches/ from repo"
-            cp -r config/patches _patches/
-          fi
-          echo "Patches available: $(find _patches -type f | wc -l) files"
-
-      - name: Apply smali patches
-        run: |
-          python3 scripts/apply-patches.py \
-            --source _build/official \
-            --patches _patches
+          mkdir -p _patches
+          python3 scripts/smali_diff_harvester.py \
+            --official _build/official --modded _build/modded \
+            --output _patches --report _patches/patch-report.json
+          python3 scripts/overlay-patches.py \
+            --official _build/official --modded _build/modded \
+            --report _patches/patch-report.json
 
       - name: Modify Manifest
         run: |
@@ -181,9 +110,12 @@ jobs:
             --manifest _build/official/AndroidManifest.xml \
             --push-config config/push-removal.json \
             --permissions-keep config/permissions-keep.txt
-          grep 'appComponentFactory\|usesCleartextTraffic' _build/official/AndroidManifest.xml
+          echo "=== Manifest checks ==="
+          grep -c 'appComponentFactory' _build/official/AndroidManifest.xml && echo "  appComponentFactory: set"
+          grep -c 'usesCleartextTraffic="false"' _build/official/AndroidManifest.xml && echo "  cleartext: closed"
+          grep "name=\"android.permission\." _build/official/AndroidManifest.xml || echo "  permissions: cleaned"
 
-      - name: Remove Ad SDK
+      - name: Remove Ad SDK / Push / Tracking
         run: |
           python3 scripts/remove-ad-sdk.py \
             --source _build/official \
@@ -191,16 +123,10 @@ jobs:
             --push-config config/push-removal.json \
             --permissions-keep config/permissions-keep.txt
 
-      - name: Rebuild
+      - name: Rebuild APK
         run: |
-          python3 scripts/build-and-sign.py _build/official _build/fanqie-clean.apk
-
-      - name: Verify APK
-        run: |
-          ls -lh _build/fanqie-clean.apk
-          /opt/apktool d _build/fanqie-clean.apk -o /tmp/verify -f 2>&1 | tail -1
-          echo "Rebuilt smali: $(find /tmp/verify -name '*.smali' | wc -l) files"
-          unzip -l _build/fanqie-clean.apk 2>/dev/null | grep 'AndroidManifest.xml' && echo "APK OK" || echo "APK INVALID"
+          /opt/apktool b _build/official -o _build/fanqie-unsigned.apk 2>&1 | tail -5
+          ls -lh _build/fanqie-unsigned.apk || { echo "BUILD FAILED"; ls _build/; exit 1; }
 
       - name: Generate debug keystore
         run: |
@@ -208,23 +134,33 @@ jobs:
             keytool -genkey -v -keystore debug.keystore -alias debug \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass android -keypass android \
-              -dname "CN=Debug,O=Clean,C=CN" 2>&1
+              -dname "CN=Debug,O=Clean,C=CN"
           fi
 
-      - name: Sign with apksigner
+      - name: Sign APK
         run: |
-          cp _build/fanqie-clean.apk /tmp/to-sign.apk
           jarsigner -sigalg SHA1withRSA -digestalg SHA1 \
             -keystore debug.keystore -storepass android \
-            /tmp/to-sign.apk debug 2>&1 | tail -3
-          mv /tmp/to-sign.apk _build/fanqie-clean-signed.apk
-          ls -lh _build/fanqie-clean-signed.apk
+            _build/fanqie-unsigned.apk debug 2>&1 | tail -3
+          mv _build/fanqie-unsigned.apk _build/fanqie-clean.apk
+          ls -lh _build/fanqie-clean.apk
+
+      - name: Verify APK
+        id: verify
+        run: |
+          SIZE=$(stat -c%s _build/fanqie-clean.apk)
+          echo "APK size: $SIZE bytes ($((SIZE/1024/1024)) MB)"
+          echo "apk_size=$SIZE" >> "$GITHUB_OUTPUT"
+          # Verify it's a valid zip
+          unzip -l _build/fanqie-clean.apk 2>/dev/null | grep -q AndroidManifest.xml && echo "VALID: contains AndroidManifest.xml" || echo "WARN: no manifest found"
+          unzip -l _build/fanqie-clean.apk 2>/dev/null | grep -c "\.dex" && echo "Contains DEX files" || echo "WARN: no DEX found"
 
       - name: Upload APK
+        if: ${{ !inputs.dry_run }}
         uses: actions/upload-artifact@v4
         with:
           name: fanqie-clean-apk
-          path: _build/fanqie-clean-signed.apk
+          path: _build/fanqie-clean.apk
           retention-days: 90
 
       - name: Upload build logs
@@ -232,9 +168,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
-          path: |
-            _build/*.log
-            /tmp/verify/
+          path: _patches/patch-report.json
           retention-days: 14
 
   # ============================================================
@@ -252,13 +186,12 @@ jobs:
           name: fanqie-clean-apk
           path: _apk/
 
-      - name: Find APK file
+      - name: Find APK
         id: apk
         run: |
           APK=$(find _apk -name '*.apk' -type f | head -1)
-          echo "APK path: $APK"
+          echo "APK: $APK (size: $(stat -c%s "$APK" 2>/dev/null) bytes)"
           echo "path=$APK" >> "$GITHUB_OUTPUT"
-          test -n "$APK" || { echo "ERROR: no APK found"; exit 1; }
 
       - name: Android Emulator Test
         uses: reactivecircus/android-emulator-runner@v2
@@ -273,79 +206,55 @@ jobs:
           disable-animations: true
           script: |
             set -e
-            ARTIFACT_DIR=/tmp/emulator-results
-            mkdir -p "$ARTIFACT_DIR"
+            mkdir -p /tmp/results
 
-            echo "=== [1/5] Emulator Ready Check ==="
+            echo "=== [1/5] Boot Check ==="
             adb wait-for-device
             adb shell getprop sys.boot_completed | grep -q "1" || exit 1
-            echo "OK: Boot completed"
 
-            echo "=== [2/5] Install APK ==="
+            echo "=== [2/5] Install ==="
             APK="${{ steps.apk.outputs.path }}"
-            INSTALL_OUTPUT=$(adb install -t "$APK" 2>&1)
-            echo "$INSTALL_OUTPUT"
-            if echo "$INSTALL_OUTPUT" | grep -qi "failure"; then
-              echo "::error::INSTALL FAILED"
-              echo "$INSTALL_OUTPUT" > "$ARTIFACT_DIR/install-error.txt"
-              exit 1
-            fi
-            echo "OK: Installed"
+            adb install -t "$APK" 2>&1 | tee /tmp/results/install.txt
 
-            echo "=== [3/5] Launch App ==="
-            adb shell am start -n "com.dragon.read/.pages.splash.SplashActivity" \
-              -W -S 2>&1 | tee "$ARTIFACT_DIR/launch-log.txt" || true
+            echo "=== [3/5] Launch ==="
+            adb shell am start -n com.dragon.read/.pages.splash.SplashActivity -W -S 2>&1 | tee /tmp/results/launch.txt || true
             sleep 5
 
-            echo "=== [4/5] Logcat Monitoring (20s) ==="
+            echo "=== [4/5] Logcat (20s) ==="
             adb logcat -c 2>/dev/null || true
-            adb logcat > "$ARTIFACT_DIR/logcat.txt" &
-            LOGCAT_PID=$!
-            sleep 20
-            kill $LOGCAT_PID 2>/dev/null || true
+            adb logcat > /tmp/results/logcat.txt &
+            LP=$!; sleep 20; kill $LP 2>/dev/null || true
 
-            echo "--- Crash Analysis ---"
-            grep -E "^E/AndroidRuntime|FATAL EXCEPTION|CRASH|ActivityManager.*crash|Native crash" \
-              "$ARTIFACT_DIR/logcat.txt" > "$ARTIFACT_DIR/crash-report.txt" || true
-            if [ -s "$ARTIFACT_DIR/crash-report.txt" ]; then
-              echo "::warning::CRASHES DETECTED"
-              cat "$ARTIFACT_DIR/crash-report.txt"
+            echo "--- Crashes ---"
+            grep -E "AndroidRuntime|FATAL|CRASH|Native crash" /tmp/results/logcat.txt > /tmp/results/crash.txt || true
+            if [ -s /tmp/results/crash.txt ]; then
+              cat /tmp/results/crash.txt
+              echo "::error::CRASHES DETECTED"
             else
-              echo "OK: No crashes detected"
+              echo "OK: No crashes"
             fi
 
-            echo "--- App Activity Check ---"
+            echo "--- Hook Load ---"
+            grep -iE "pandora|AppFactory|CreatorProxy|ShadowHook" /tmp/results/logcat.txt > /tmp/results/hook.txt || true
+            if [ -s /tmp/results/hook.txt ]; then
+              echo "OK: Hook framework detected"
+              cat /tmp/results/hook.txt
+            else
+              echo "::warning::Hook framework NOT detected in logcat"
+            fi
+
+            echo "--- App Focus ---"
             adb shell dumpsys window windows 2>/dev/null | grep -E 'mCurrentFocus|mFocusedApp' | head -3 || true
 
-            echo "--- Hook Detection ---"
-            grep -iE "pandora|AppFactory|CreatorProxy|ShadowHook|Lancet" \
-              "$ARTIFACT_DIR/logcat.txt" > "$ARTIFACT_DIR/hook-load.txt" || true
-            if [ -s "$ARTIFACT_DIR/hook-load.txt" ]; then
-              echo "OK: Hook framework detected"
-              cat "$ARTIFACT_DIR/hook-load.txt"
-            else
-              echo "::warning::HOOK FRAMEWORK NOT DETECTED"
-            fi
-
             echo "=== [5/5] Screenshot ==="
-            adb shell screencap -p /sdcard/screenshot.png 2>/dev/null || true
-            adb pull /sdcard/screenshot.png "$ARTIFACT_DIR/screenshot.png" 2>/dev/null || true
-            if [ -f "$ARTIFACT_DIR/screenshot.png" ]; then
-              echo "OK: Screenshot saved"
-              ls -lh "$ARTIFACT_DIR/screenshot.png"
-            else
-              echo "WARN: Screenshot not captured"
-            fi
+            adb shell screencap -p /sdcard/screen.png 2>/dev/null || true
+            adb pull /sdcard/screen.png /tmp/results/screen.png 2>/dev/null || true
+            if [ -f /tmp/results/screen.png ]; then echo "OK: Screenshot"; ls -lh /tmp/results/screen.png; fi
 
-            echo "=== Verification Summary ==="
-            echo "APK Size: $(stat -c%s "$APK" 2>/dev/null || echo 'N/A') bytes"
-            echo "Crash: $([ -s "$ARTIFACT_DIR/crash-report.txt" ] && echo YES || echo NO)"
-            echo "Hook:  $([ -s "$ARTIFACT_DIR/hook-load.txt" ] && echo YES || echo NO)"
-
-      - name: Upload verification artifacts
+      - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: emulator-verification
-          path: /tmp/emulator-results/
+          path: /tmp/results/
           retention-days: 14

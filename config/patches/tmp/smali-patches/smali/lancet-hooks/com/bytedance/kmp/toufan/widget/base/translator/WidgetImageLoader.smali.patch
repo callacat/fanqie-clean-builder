@@ -1,0 +1,16 @@
+# Patch: com.bytedance.kmp.toufan.widget.base.translator.WidgetImageLoader
+# Official: smali_classes24/com/bytedance/kmp/toufan/widget/base/translator/WidgetImageLoader.smali
+# Modded:  smali_classes25/com/bytedance/kmp/toufan/widget/base/translator/WidgetImageLoader.smali
+# Diff type: logical_change
+# Status: keep
+--- smali_classes24/com/bytedance/kmp/toufan/widget/base/translator/WidgetImageLoader.smali
++++ smali_classes25/com/bytedance/kmp/toufan/widget/base/translator/WidgetImageLoader.smali
+@@ -193,7 +193,7 @@
+     invoke-virtual {p0}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+     move-result-object v0
+     const/4 v1, 0x4
+-    const-string v2, "/cache/4838/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.bytedance.kmp.toufan:widget-base-android:0.0.2-alpha.100-fq-d95cc"
++    const-string v2, "/cache/81555/android/app/build/tmp/transformClassesWithALogReplacePluginForFanqieRelease/com.bytedance.kmp.toufan:widget-base-android:0.0.2-alpha.100-fq-d95cc"
+     invoke-static {v2, v0, v1}, Lcom/dragon/read/pathcollect/hook/JavaCollectCallback;->tryCollect(Ljava/lang/String;Ljava/lang/String;I)V
+     :cond_0
+     new-instance v0, Lcom/bytedance/security/android/aopcheck/PolarisFileOutputStreamWrapper;
