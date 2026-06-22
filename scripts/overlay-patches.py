@@ -6,22 +6,15 @@ Strategy
 Lancet AOP modifies both hook targets AND every call site across 26 dexes.
 The only reliable transplant is to overlay the exact changed files from the
 modded tree onto the official tree (match by .class directive, not path).
-
-The patch-report.json (from smali_diff_harvester) lists every file pair:
-
-    "class_name": "zo4.b"
-    "diff_type": "logical_change"
-    "files": ["smali_classes18/zo4/b.smali", "smali_classes24/zo4/b.smali"]
-               ↑ official path            ↑ modded path
-
-We copy modded → official for every logical_change (1 422 files),
-and append new modded-only files (900 files) to smali_classes29.
 """
 
 from __future__ import annotations
 
 import argparse, json, shutil, re, sys
 from pathlib import Path
+
+# Strip smali_classesN/ prefix to get bare package path.
+RE_SMALI_CLASSES = re.compile(r'^smali(_classes\d+)?/')
 
 SAFE_NEW = frozenset({
     "com/pandora/core/CreatorProxy.smali",
@@ -34,14 +27,19 @@ BLOCKLIST = frozenset({
     "com/pandora/core/ۧۤۤ.smali",
 })
 
+# Matches all common class access flags — missing one means the .class line
+# won't be parsed and the class won't appear in the index.
 RE_CLASS = re.compile(
-    r'^\.class\s+(?:public\s+|final\s+|abstract\s+|static\s+)*L([\w/$-]+);',
+    r"^\.class\s+(?:public\s+|private\s+|protected\s+|static\s+|final\s+"
+    r"|abstract\s+|synthetic\s+|bridge\s+|interface\s+|enum\s+|annotation\s+"
+    r"|varargs\s+|native\s+|strict\s+|transient\s+|volatile\s+)*"
+    r"L([\w/$-]+);",
     re.MULTILINE,
 )
 
 
 def build_class_index(root: Path) -> dict[str, Path]:
-    """Scan all smali dirs once and return {class_name: file_path}."""
+    """Scan smali dirs once and return {class_name: file_path}."""
     idx: dict[str, Path] = {}
     for smali_dir in root.glob("smali*"):
         if not smali_dir.is_dir():
@@ -52,6 +50,11 @@ def build_class_index(root: Path) -> dict[str, Path]:
             if m:
                 idx[m.group(1)] = f
     return idx
+
+
+def bare_path(p: str) -> str:
+    """Strip smali_classesN/ prefix → bare package path."""
+    return RE_SMALI_CLASSES.sub("", p)
 
 
 def main() -> None:
@@ -68,7 +71,6 @@ def main() -> None:
     report = json.loads(Path(args.report).read_text())
     new_dex = official / args.new_dex
 
-    # Build class indices once (O(n) total, not O(n²))
     print("Building class index for official tree…")
     official_idx = build_class_index(official)
     print(f"  {len(official_idx)} classes indexed")
@@ -109,12 +111,13 @@ def main() -> None:
 
         elif dt == "added" and files:
             mod_rel = files[0]
+            bare = bare_path(mod_rel)
 
-            if mod_rel in BLOCKLIST:
+            if bare in BLOCKLIST:
                 blocked += 1
                 continue
 
-            if cat == "uncategorized" and mod_rel not in SAFE_NEW:
+            if cat == "uncategorized" and bare not in SAFE_NEW:
                 blocked += 1
                 continue
 
@@ -126,7 +129,7 @@ def main() -> None:
                 skipped += 1
                 continue
 
-            dst = new_dex / mod_rel
+            dst = new_dex / bare
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
             added += 1
