@@ -348,20 +348,7 @@ def main() -> None:
         # ── Level 2: stripped-content SHA256 ─────────────────────
         if sha256_str(off_stripped) == sha256_str(mod_stripped):
             stats["metadata_only"] += 1
-            # Write a compact diff (zero context) as reference; mark skip.
-            header = make_patch_header(
-                class_name, off_rel, mod_rel, "metadata_only", "skip"
-            )
-            diff = list(
-                difflib.unified_diff(
-                    off_stripped.splitlines(keepends=True),
-                    mod_stripped.splitlines(keepends=True),
-                    fromfile=off_rel,
-                    tofile=mod_rel,
-                    n=0,
-                )
-            )
-            write_patch(patches_dir, "smali/metadata", class_name, header, diff)
+            # Skip writing — metadata-only files are not useful patches.
             continue
 
         # ── Level 3: logical change — diff stripped content ──────
@@ -452,14 +439,16 @@ def main() -> None:
     print(f"  Done — {mod_only_processed:,} modded-only files processed")
     print()
 
-    # ── Phase 4: Write report ────────────────────────────────────────
+    # ── Phase 4: Write report (compact — omit metadata_only) ───────
     print("[Phase 4] Writing report…")
 
-    uncategorized = [p["class_name"] for p in patches if p["category"] == "uncategorized"]
+    # Only include logical changes and added files in the report
+    meaningful = [p for p in patches if p.get("diff_type") != "metadata_only"]
+    print(f"  {len(patches)} total patches; writing {len(meaningful)} meaningful entries")
 
     report = {
         "stats": stats,
-        "patches": patches,
+        "patches": meaningful,        # exclude 170K metadata entries
         "lancet_hooks": sorted(lancet_hooks),
         "dpatch_files": sorted(dpatch_files),
         "uncategorized": sorted(uncategorized),
@@ -468,6 +457,7 @@ def main() -> None:
     report_path.write_text(
         json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
     )
+    print(f"  Report size: {report_path.stat().st_size / 1024:.0f} KB")
 
     # ── Summary ───────────────────────────────────────────────────────
     print()
