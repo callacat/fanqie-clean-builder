@@ -1,15 +1,14 @@
 name: Fanqie Clean Build Pipeline
-
 on: workflow_dispatch
-
 env:
   MODDED_URL: 'https://github.com/callacat/gha-build-farm/releases/download/apk-assets/fanqie_novel_7.2.4.19.apk'
+  OFFICIAL_URL: 'https://cloud.dsdog.tk/d/google/temp/%E7%95%AA%E8%8C%84%E5%85%8D%E8%B4%B9%E5%B0%8F%E8%AF%B4_7.2.4.32.apk?sign=xUavME2Rt4Vf1FTbCppPq7sU8bRUFh29hrbIhdsXon4=:0'
   JAVA_TOOL_OPTIONS: '-Xmx6g'
 
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -22,18 +21,18 @@ jobs:
 
       - name: Download & decode modded APK
         run: |
-          mkdir -p _downloads _build
+          mkdir -p _downloads _build _smali _diff
           curl -sL -o _downloads/modded.apk "$MODDED_URL"
           /opt/apktool if _downloads/modded.apk 2>&1 | tail -1 || true
           /opt/apktool d _downloads/modded.apk -o _build/source -f
           [ -f _build/source/AndroidManifest.xml ] || exit 1
+          echo "Smali files: $(find _build/source -name '*.smali' | wc -l)"
 
-      - name: Nuke invalid resource dirs (anti-repackaging measure)
+      - name: Nuke invalid resource dirs
         run: |
           rm -rf _build/source/res/invalid15 2>/dev/null || true
           PUB="_build/source/res/values/public.xml"
           [ -f "$PUB" ] && grep -vE 'type="invalid[0-9]+"' "$PUB" > "${PUB}.clean" && mv "${PUB}.clean" "$PUB"
-          echo "Invalid resources cleaned"
 
       - name: Strip Ad SDK + Push + Tracking
         run: |
@@ -43,11 +42,11 @@ jobs:
             --push-config config/push-removal.json \
             --permissions-keep config/permissions-keep.txt
 
-      - name: Strip DPatch tracking code (keep only CreatorProxy + DATA + ۧۤۤ)
+      - name: Strip DPatch tracking (keep CreatorProxy + DATA + ۧۤۤ)
         run: |
           rm -f $(find _build/source -path "*/pandora/core/AppFactory.smali" ! -path "*\$DATA*") 2>/dev/null || true
           rm -f $(find _build/source -path "*/pandora/core/Copyright.smali") 2>/dev/null || true
-          echo "Remaining pandora-core files:"
+          echo "Remaining:"
           find _build/source -path "*/pandora/core/*" -name "*.smali" 2>/dev/null || echo "none"
 
       - name: Modify Manifest
@@ -57,15 +56,7 @@ jobs:
             --push-config config/push-removal.json \
             --permissions-keep config/permissions-keep.txt
 
-      - name: Enable jumbo mode (safety net)
-        run: |
-          YML="_build/source/apktool.yml"
-          [ -f "$YML" ] && grep -q 'smali.jumbo' "$YML" && \
-            sed -i 's/smali\.jumbo.*/smali.jumbo: true/' "$YML" || \
-            echo "smali.jumbo: true" >> "$YML"
-          grep "jumbo" "$YML"
-
-      - name: Rebuild APK 
+      - name: Rebuild APK
         run: |
           /opt/apktool b _build/source -o _build/fanqie-unsigned.apk 2>&1 | tail -5
           ls -lh _build/fanqie-unsigned.apk || exit 1
@@ -75,33 +66,27 @@ jobs:
           [ -f debug.keystore ] || keytool -genkey -v -keystore debug.keystore -alias debug \
             -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android \
             -dname "CN=Debug,O=Clean,C=CN"
-          # Strategy 1: apksigner from Android SDK (pre-installed on ubuntu runner)
+          # Try apksigner (Android SDK), fallback to uber-apk-signer, then jarsigner
           APKSIGNER=$(find /usr/local/lib/android/sdk -name apksigner -type f 2>/dev/null | head -1)
           if [ -n "$APKSIGNER" ]; then
-            echo "Using apksigner: $APKSIGNER"
             "$APKSIGNER" sign --ks debug.keystore --ks-pass pass:android \
               --out _build/fanqie-clean.apk _build/fanqie-unsigned.apk 2>&1 | tail -3
+            echo "Signed with apksigner"
           elif curl -sL --connect-timeout 10 \
             "https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar" \
-            -o /opt/uber.jar; then
-            echo "Using uber-apk-signer"
+            -o /tmp/uber.jar 2>/dev/null; then
+            java -jar /tmp/uber.jar --apks _build/fanqie-unsigned.apk \
+              --ks debug.keystore --ksAlias debug --ksPass android --ksKeyPass android 2>&1 | tail -3
             cp _build/fanqie-unsigned.apk _build/fanqie-clean.apk
-            java -jar /opt/uber.jar --apks _build/fanqie-clean.apk \
-              --ks debug.keystore --ksAlias debug --ksPass android --ksKeyPass android \
-              2>&1 | tail -5
+            echo "Signed with uber-apk-signer"
           else
-            echo "apksigner/uber unavailable, falling back to jarsigner (v1 scheme only)"
-            cp _build/fanqie-unsigned.apk _build/fanqie-clean.apk
             jarsigner -sigalg SHA1withRSA -digestalg SHA1 \
               -keystore debug.keystore -storepass android \
-              _build/fanqie-clean.apk debug 2>&1 | tail -3
+              _build/fanqie-unsigned.apk debug 2>&1 | tail -3
+            mv _build/fanqie-unsigned.apk _build/fanqie-clean.apk
+            echo "Signed with jarsigner (v1 only)"
           fi
           ls -lh _build/fanqie-clean.apk
-
-      - name: Verify APK
-        run: |
-          ls -lh _build/fanqie-clean.apk
-          unzip -l _build/fanqie-clean.apk 2>/dev/null | grep -q AndroidManifest.xml && echo "VALID" || echo "INVALID"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -110,12 +95,40 @@ jobs:
           path: _build/fanqie-clean.apk
           retention-days: 90
 
-      - name: Auto-trigger diff verification
-        if: success()
-        env:
-          GH_TOKEN: ${{ github.token }}
+      # =============== IN-JOB DIFF (same job, no cross-artifact download) ===============
+
+      - name: Download official APK for diff
         run: |
-          gh workflow run verify-diff.yml -R ${{ github.repository }} --ref main
+          curl -sL -o /tmp/official.apk "$OFFICIAL_URL"
+          ls -lh /tmp/official.apk
 
+      - name: Decode official + clean for diff
+        run: |
+          /opt/apktool d /tmp/official.apk -o _smali/official -f &
+          P1=$!
+          /opt/apktool d _build/fanqie-clean.apk -o _smali/clean -f &
+          P2=$!
+          wait $P1 || { echo "official decode failed"; exit 1; }
+          wait $P2 || { echo "clean decode failed"; exit 1; }
+          echo "Official smali: $(find _smali/official -name '*.smali' | wc -l)"
+          echo "Clean smali:   $(find _smali/clean -name '*.smali' | wc -l)"
+        timeout-minutes: 12
 
+      - name: Run diff harvester
+        run: |
+          python3 scripts/smali_diff_harvester.py \
+            --official _smali/official \
+            --modded _smali/clean \
+            --output _diff \
+            --report _diff/report.json
 
+      - name: Show diff summary
+        run: python3 scripts/verify-diff-summary.py _diff/report.json
+
+      - name: Upload diff report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diff-report
+          path: _diff/
+          retention-days: 30
