@@ -130,12 +130,9 @@ jobs:
           emulator-boot-timeout: 600
           script: |
             mkdir -p /tmp/r
-            # Strip arm64 libs so APK installs on x86_64 emulator (Java layer test)
-            APK="${{ steps.apk.outputs.path }}"
-            STRIPPED="/tmp/r/fanqie-clean-stripped.apk"
-            cp "$APK" "$STRIPPED"
-            (cd /tmp/r && zip -d "fanqie-clean-stripped.apk" "lib/*") 2>/dev/null || true
-            adb install -t "$STRIPPED" | tee /tmp/r/install.txt
+            cp "${{ steps.apk.outputs.path }}" /tmp/r/fanqie-clean-stripped.apk
+            (cd /tmp/r && zip -d fanqie-clean-stripped.apk "lib/*") 2>/dev/null || true
+            adb install -t /tmp/r/fanqie-clean-stripped.apk 2>&1 | tee /tmp/r/install.txt
             adb shell am start -n com.dragon.read/.pages.splash.SplashActivity || true
             sleep 5
             adb logcat -c 2>/dev/null || true
