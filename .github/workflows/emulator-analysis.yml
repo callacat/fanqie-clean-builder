@@ -2,15 +2,6 @@ name: Emulator Traffic Analysis
 
 on:
   workflow_dispatch:
-    inputs:
-      official_apk_url:
-        description: 'Official APK URL (leave empty for default)'
-        required: false
-        default: ''
-      modded_apk_url:
-        description: 'Modded APK URL (leave empty for default)'
-        required: false
-        default: ''
 
 env:
   OFFICIAL_URL: 'https://cloud.dsdog.tk/d/google/temp/%E7%95%AA%E8%8C%84%E5%85%8D%E8%B4%B9%E5%B0%8F%E8%AF%B4_7.2.4.32.apk?sign=xUavME2Rt4Vf1FTbCppPq7sU8bRUFh29hrbIhdsXon4=:0'
@@ -19,22 +10,24 @@ env:
 jobs:
   traffic-compare:
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
-      - name: Install tools
-        run: |
-          pip install mitmproxy 2>/dev/null || true
+      - name: Install mitmproxy
+        run: pip install mitmproxy -q
 
-      - name: Download APKs
+      - name: Download APKs (strip arm64 libs)
         run: |
-          OFF="${1:-$OFFICIAL_URL}"
-          MOD="${2:-$MODDED_URL}"
           mkdir -p /tmp/apks /tmp/results
-          curl -sL -o /tmp/apks/official.apk "${inputs.official_apk_url:-$OFFICIAL_URL}"
-          curl -sL -o /tmp/apks/modded.apk "${inputs.modded_apk_url:-$MODDED_URL}"
+          curl -sL -o /tmp/apks/official.apk "$OFFICIAL_URL"
+          curl -sL -o /tmp/apks/modded.apk "$MODDED_URL"
+          for f in official modded; do
+            cp /tmp/apks/$f.apk /tmp/apks/$f-stripped.apk
+            (cd /tmp/apks && zip -d $f-stripped.apk "lib/*" 2>/dev/null || true)
+          done
           ls -lh /tmp/apks/
 
-      - uses: reactivecircus/android-emulator-runner@v2
+      - name: Run emulator + capture
+        uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 31
           target: default
@@ -45,101 +38,57 @@ jobs:
           disable-animations: true
           boot-timeout: 600s
           script: |
-            set -e
-            APKS=/tmp/apks
-            RESULTS=/tmp/results
-            mkdir -p "$RESULTS"
+            APKS=/tmp/apks; R=/tmp/results
 
-            # ── Setup: install mitmproxy CA cert ──
-            echo "=== Setup mitmproxy CA ==="
-            pip install mitmproxy -q
-            mitmdump --no-http2 &
-            sleep 3
-            CERT=~/.mitmproxy/mitmproxy-ca-cert.cer
-            if [ -f "$CERT" ]; then
-              HASH=$(openssl x509 -inform PEM -subject_hash_old -in "$CERT" 2>/dev/null | head -1)
-              adb root
-              adb remount 2>/dev/null || true
-              adb push "$CERT" "/system/etc/security/cacerts/${HASH:-c8750f0d}.0" 2>/dev/null || true
-              adb shell chmod 644 "/system/etc/security/cacerts/${HASH:-c8750f0d}.0" 2>/dev/null || true
-              echo "mitmproxy CA pushed"
-            fi
-            kill %1 2>/dev/null || true
+            test_apk() {
+              LABEL=$1; APK=$2
+              echo "=== [$LABEL] Install ==="
+              adb uninstall com.dragon.read 2>/dev/null || true
+              adb install -t "$APK" 2>&1 | tail -5 || { echo "INSTALL FAIL"; return; }
 
-            # ── Test 1: Official APK ──
-            echo "=== Test 1: Official APK ==="
-            adb install -t "$APKS/official.apk" 2>&1 | head -3
+              echo "=== [$LABEL] Start mitmdump ==="
+              mitmdump -w "$R/$LABEL.flow" --set block_global=false --listen-port 8080 &
+              MPID=$!
+              sleep 2
 
-            # Start mitmproxy
-            mitmdump -w "$RESULTS/official.flow" --set block_global=false --listen-port 8080 &
-            MPID=$!
-            sleep 2
+              adb shell settings put global http_proxy 10.0.2.2:8080 2>/dev/null || true
 
-            # Set proxy
-            adb shell settings put global http_proxy 10.0.2.2:8080 2>/dev/null || true
+              echo "=== [$LABEL] Launch ==="
+              adb shell am start -n com.dragon.read/.pages.splash.SplashActivity 2>/dev/null || true
+              sleep 20
 
-            # Launch
-            adb shell am start -n com.dragon.read/.pages.splash.SplashActivity 2>/dev/null || true
-            sleep 20
+              kill $MPID 2>/dev/null || true
+              wait $MPID 2>/dev/null || true
+              adb shell settings delete global http_proxy 2>/dev/null || true
+            }
 
-            # Stop mitmproxy
-            kill $MPID 2>/dev/null || true
-            sleep 2
-            adb shell settings put global http_proxy :0 2>/dev/null || true
+            test_apk "official" "$APKS/official-stripped.apk"
+            test_apk "modded" "$APKS/modded-stripped.apk"
 
-            # Screenshot
-            adb shell screencap -p /sdcard/screen1.png 2>/dev/null || true
-            adb pull /sdcard/screen1.png "$RESULTS/official-screen.png" 2>/dev/null || true
-
-            # ── Test 2: Modded APK ──
-            echo "=== Test 2: Modded APK ==="
-            # Uninstall official, install modded
-            adb uninstall com.dragon.read 2>/dev/null || true
-            adb install -t "$APKS/modded.apk" 2>&1 | head -3
-
-            mitmdump -w "$RESULTS/modded.flow" --set block_global=false --listen-port 8080 &
-            MPID=$!
-            sleep 2
-            adb shell settings put global http_proxy 10.0.2.2:8080 2>/dev/null || true
-            adb shell am start -n com.dragon.read/.pages.splash.SplashActivity 2>/dev/null || true
-            sleep 20
-            kill $MPID 2>/dev/null || true
-            adb shell settings put global http_proxy :0 2>/dev/null || true
-            adb shell screencap -p /sdcard/screen2.png 2>/dev/null || true
-            adb pull /sdcard/screen2.png "$RESULTS/modded-screen.png" 2>/dev/null || true
-
-            # ── Generate diff report ──
-            echo "=== Generating diff report ==="
-            if command -v mitmdump &>/dev/null && [ -f "$RESULTS/official.flow" ]; then
-              mitmdump -nr "$RESULTS/official.flow" -s /dev/stdin 2>/dev/null <<'PYEOF' | sort > "$RESULTS/official-requests.txt" || true
+            echo "=== Diff ==="
+            for label in official modded; do
+              [ -f "$R/$label.flow" ] || continue
+              # Extract URLs + status codes
+              mitmdump -nr "$R/$label.flow" -s /dev/stdin 2>/dev/null > "$R/$label-raw.txt" <<'PYEOF' || true
 from mitmproxy import http
 def response(flow: http.HTTPFlow):
-    print(f"{flow.request.method} {flow.request.pretty_url} | {flow.response.status_code} | {len(flow.response.content)} bytes")
+    u = flow.request.pretty_url
+    print(f"{flow.response.status_code} {u}")
 PYEOF
-            fi
-            if command -v mitmdump &>/dev/null && [ -f "$RESULTS/modded.flow" ]; then
-              mitmdump -nr "$RESULTS/modded.flow" -s /dev/stdin 2>/dev/null <<'PYEOF' | sort > "$RESULTS/modded-requests.txt" || true
-from mitmproxy import http
-def response(flow: http.HTTPFlow):
-    print(f"{flow.request.method} {flow.request.pretty_url} | {flow.response.status_code} | {len(flow.response.content)} bytes")
-PYEOF
-            fi
+              # Clean URLs: normalize, sort, dedupe
+              sed 's|^[0-9][0-9][0-9] ||; s|?.*||; s|/[0-9a-f]\{8,\}|/HASH|g' "$R/$label-raw.txt" | sort -u > "$R/$label-urls.txt"
+              echo "$label: $(wc -l < "$R/$label-urls.txt") unique endpoints"
+            done
 
             # Diff
-            if [ -f "$RESULTS/official-requests.txt" ] && [ -f "$RESULTS/modded-requests.txt" ]; then
-              echo "=== Requests ONLY in official ===" > "$RESULTS/traffic-diff.txt"
-              comm -23 "$RESULTS/official-requests.txt" "$RESULTS/modded-requests.txt" >> "$RESULTS/traffic-diff.txt"
-              echo "" >> "$RESULTS/traffic-diff.txt"
-              echo "=== Requests ONLY in modded ===" >> "$RESULTS/traffic-diff.txt"
-              comm -13 "$RESULTS/official-requests.txt" "$RESULTS/modded-requests.txt" >> "$RESULTS/traffic-diff.txt"
-              echo "" >> "$RESULTS/traffic-diff.txt"
-              echo "=== Total requests ===" >> "$RESULTS/traffic-diff.txt"
-              echo "Official: $(wc -l < "$RESULTS/official-requests.txt")" >> "$RESULTS/traffic-diff.txt"
-              echo "Modded:   $(wc -l < "$RESULTS/modded-requests.txt")" >> "$RESULTS/traffic-diff.txt"
-            fi
-            echo "Total official requests: $(wc -l < $RESULTS/official-requests.txt 2>/dev/null || echo 0)"
-            echo "Total modded requests:   $(wc -l < "$RESULTS/modded-requests.txt" 2>/dev/null || echo 0)"
-            echo "DONE"
+            {
+              echo "=== ONLY in official ==="
+              comm -23 "$R/official-urls.txt" "$R/modded-urls.txt" 2>/dev/null || true
+              echo "=== ONLY in modded ==="
+              comm -13 "$R/official-urls.txt" "$R/modded-urls.txt" 2>/dev/null || true
+              echo "=== OFFICIAL total: $(wc -l < "$R/official-urls.txt" 2>/dev/null || echo 0)"
+              echo "=== MODDED total:   $(wc -l < "$R/modded-urls.txt" 2>/dev/null || echo 0)"
+            } | tee "$R/traffic-diff.txt"
 
       - name: Upload results
         if: always()
