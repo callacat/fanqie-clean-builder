@@ -53,7 +53,7 @@ jobs:
 
       - name: Modify Manifest
         run: |
-          python3 scripts/modify-manifest.py --skip-component-factory \
+          python3 scripts/modify-manifest.py --component-factory "androidx.core.app.CoreComponentFactory" \
             --manifest _build/source/AndroidManifest.xml \
             --push-config config/push-removal.json \
             --permissions-keep config/permissions-keep.txt
