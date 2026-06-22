@@ -75,17 +75,26 @@ jobs:
           [ -f debug.keystore ] || keytool -genkey -v -keystore debug.keystore -alias debug \
             -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android \
             -dname "CN=Debug,O=Clean,C=CN"
-          if command -v apksigner &>/dev/null; then
-            echo "Using apksigner (Android SDK)"
-            apksigner sign --ks debug.keystore --ks-pass pass:android \
-              --out _build/fanqie-clean.apk _build/fanqie-unsigned.apk 2>&1 | tail -2
-          else
-            echo "apksigner not found, using uber-apk-signer"
-            curl -sL "https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar" -o /opt/uber.jar
+          # Strategy 1: apksigner from Android SDK (pre-installed on ubuntu runner)
+          APKSIGNER=$(find /usr/local/lib/android/sdk -name apksigner -type f 2>/dev/null | head -1)
+          if [ -n "$APKSIGNER" ]; then
+            echo "Using apksigner: $APKSIGNER"
+            "$APKSIGNER" sign --ks debug.keystore --ks-pass pass:android \
+              --out _build/fanqie-clean.apk _build/fanqie-unsigned.apk 2>&1 | tail -3
+          elif curl -sL --connect-timeout 10 \
+            "https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar" \
+            -o /opt/uber.jar; then
+            echo "Using uber-apk-signer"
             cp _build/fanqie-unsigned.apk _build/fanqie-clean.apk
             java -jar /opt/uber.jar --apks _build/fanqie-clean.apk \
               --ks debug.keystore --ksAlias debug --ksPass android --ksKeyPass android \
-              2>&1 | tail -3
+              2>&1 | tail -5
+          else
+            echo "apksigner/uber unavailable, falling back to jarsigner (v1 scheme only)"
+            cp _build/fanqie-unsigned.apk _build/fanqie-clean.apk
+            jarsigner -sigalg SHA1withRSA -digestalg SHA1 \
+              -keystore debug.keystore -storepass android \
+              _build/fanqie-clean.apk debug 2>&1 | tail -3
           fi
           ls -lh _build/fanqie-clean.apk
 
