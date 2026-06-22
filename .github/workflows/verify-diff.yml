@@ -1,7 +1,5 @@
 name: Verify Build Diff
-
 on: workflow_dispatch
-
 env:
   OFFICIAL_URL: 'https://cloud.dsdog.tk/d/google/temp/%E7%95%AA%E8%8C%84%E5%85%8D%E8%B4%B9%E5%B0%8F%E8%AF%B4_7.2.4.32.apk?sign=xUavME2Rt4Vf1FTbCppPq7sU8bRUFh29hrbIhdsXon4=:0'
   JAVA_TOOL_OPTIONS: '-Xmx6g'
@@ -20,29 +18,30 @@ jobs:
           curl -sL "https://github.com/iBotPeaches/Apktool/releases/download/v3.0.2/apktool_3.0.2.jar" -o /opt/apktool.jar
           printf '#!/bin/bash\njava -jar /opt/apktool.jar "$@"\n' > /opt/apktool && chmod +x /opt/apktool
 
-      - name: Download official APK + fetch build artifact
+      - name: Download official APK
         run: |
-          mkdir -p _downloads _build
+          mkdir -p _downloads _build _smali _diff
           curl -sL -o _downloads/official.apk "$OFFICIAL_URL"
 
-      - name: Get latest successful build APK
+      - name: Fetch latest successful build APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           RID=$(gh run list -R ${{ github.repository }} -w "Fanqie Clean Build Pipeline" --json databaseId,conclusion --jq '.[] | select(.conclusion=="success") | .databaseId' | head -1)
-          echo "Downloading from run $RID"
-          gh run download "$RID" -n fanqie-clean-apk -D _build/clean 2>/dev/null
-          ls -lh _build/clean/
+          echo "Getting APK from run $RID"
+          gh run download "$RID" -n fanqie-clean-apk -D /tmp/artifact 2>/dev/null
+          cd /tmp/artifact && unzip -o "*.zip" 2>/dev/null; ls -lh *.apk 2>/dev/null && cp *.apk /tmp/clean.apk 2>/dev/null
+          ls -lh /tmp/clean.apk 2>/dev/null || echo "APK not found"
 
       - name: Parallel decode
         run: |
-          /opt/apktool d _downloads/official.apk -o _smali/official -f 2>&1 | tail -1 &
+          /opt/apktool d _downloads/official.apk -o _smali/official -f &
           P1=$!
-          /opt/apktool d _build/clean/*.apk -o _smali/clean -f 2>&1 | tail -1 &
+          /opt/apktool d /tmp/clean.apk -o _smali/clean -f 2>&1 &
           P2=$!
           wait $P1 $P2
-          echo "Official: $(find _smali/official -name '*.smali' | wc -l) smali files"
-          echo "Clean:    $(find _smali/clean -name '*.smali' | wc -l) smali files"
+          echo "Official: $(find _smali/official -name '*.smali' | wc -l)"
+          echo "Clean:    $(find _smali/clean -name '*.smali' | wc -l)"
         timeout-minutes: 12
 
       - name: Run diff harvester
@@ -53,16 +52,10 @@ jobs:
             --output _diff \
             --report _diff/report.json
 
-      - name: Summary
+      - name: Show summary
         run: |
-          cat _diff/report.json | python3 -c '
-import json,sys
-d=json.load(sys.stdin)
-for k,v in d.get("stats",{}).items():
-    print(f"  {k}: {v}")
-print(f"  lancet_hooks: {len(d.get(\"lancet_hooks\",[]))}")
-print(f"  dpatch_files: {len(d.get(\"dpatch_files\",[]))}")
-'
+          python3 scripts/verify-diff-summary.py _diff/report.json
+
       - name: Upload diff report
         if: always()
         uses: actions/upload-artifact@v4
