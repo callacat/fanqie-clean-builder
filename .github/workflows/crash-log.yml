@@ -1,5 +1,8 @@
 name: Capture Crash Log
-on: workflow_dispatch
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   crash-log:
