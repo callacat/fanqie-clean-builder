@@ -62,9 +62,15 @@ def main() -> None:
     ap.add_argument("--official", required=True)
     ap.add_argument("--modded", required=True)
     ap.add_argument("--report", default="patch-report.json")
+    ap.add_argument("--lancet-only", action="store_true",
+                    help="Only overlay Lancet hook files (skip uncategorized)")
     ap.add_argument("--new-dex", default="smali_classes29",
                     help="Dex directory for new (modded-only) files")
     args = ap.parse_args()
+
+    # When --lancet-only, only process classifications that carry
+    # hook/signature/device-spoof content — skip uncategorized.
+    ALLOWED_CATS = {"lancet-hooks", "pandora-core", "sign-checks", "device-spoof"}
 
     official = Path(args.official).resolve()
     modded = Path(args.modded).resolve()
@@ -87,6 +93,10 @@ def main() -> None:
         cat = p.get("category", "uncategorized")
 
         if dt == "metadata_only":
+            continue
+
+        if args.lancet_only and cat == "uncategorized":
+            skipped += 1
             continue
 
         jvm_name = cls.replace(".", "/")
