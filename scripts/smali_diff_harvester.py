@@ -446,6 +446,8 @@ def main() -> None:
     meaningful = [p for p in patches if p.get("diff_type") != "metadata_only"]
     print(f"  {len(patches)} total patches; writing {len(meaningful)} meaningful entries")
 
+    uncategorized = [p["class_name"] for p in patches if p.get("category") == "uncategorized"]
+
     report = {
         "stats": stats,
         "patches": meaningful,        # exclude 170K metadata entries
