@@ -148,7 +148,14 @@ jobs:
 
       - name: Rebuild APK
         run: |
-          /opt/apktool b _build/official -o _build/fanqie-unsigned.apk 2>&1 | tail -5
+          # Enable jumbo mode in apktool.yml to avoid DEX ref overflow
+          YML="_build/official/apktool.yml"
+          if [ -f "$YML" ]; then
+            sed -i 's/^smali\.jumbo:.*/smali.jumbo: true/' "$YML" || true
+            grep -q '^smali\.jumbo' "$YML" || echo "smali.jumbo: true" >> "$YML"
+            echo "Jumbo mode enabled"
+          fi
+          /opt/apktool b _build/official -o _build/fanqie-unsigned.apk 2>&1 | tail -10
           ls -lh _build/fanqie-unsigned.apk || { echo "BUILD FAILED"; ls _build/; exit 1; }
 
       - name: Generate debug keystore
