@@ -77,12 +77,13 @@ jobs:
 
       - name: Rebuild APK
         run: |
-          # Strip invalid resource type references from public.xml
+          # Strip invalid resource type refs from public.xml
           PUB="_build/source/res/values/public.xml"
           if [ -f "$PUB" ]; then
             grep -vE 'type="invalid[0-9]+"' "$PUB" > "${PUB}.clean" && mv "${PUB}.clean" "$PUB"
-            echo "Fixed public.xml: removed invalid type refs"
           fi
+          # Remove invalid resource directories (anti-repackaging measure in modded APK)
+          find _build/source/res -maxdepth 1 -type d -name 'invalid*' -exec rm -rf {} + 2>/dev/null || true
           /opt/apktool b _build/source -o _build/fanqie-unsigned.apk 2>&1 | tail -10
           ls -lh _build/fanqie-unsigned.apk || { echo "BUILD FAILED"; exit 1; }
 
