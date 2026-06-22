@@ -6,22 +6,49 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 25
     steps:
-      - name: Get latest successful build run ID
-        id: runid
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Write capture script
         run: |
+          cat > /tmp/capture.sh << 'SCRIPT'
+          set -e
+          APK_DIR=/tmp/apk_fallback
+          mkdir -p "$APK_DIR"
+
+          # Find APK from latest successful build
+          echo "=== Finding latest successful build ==="
           RID=$(gh run list -R callacat/fanqie-clean-builder -w "Fanqie Clean Build Pipeline" --json databaseId,conclusion --jq '.[] | select(.conclusion=="success") | .databaseId' | head -1)
-          echo "run_id=$RID" >> "$GITHUB_OUTPUT"
+          echo "Run ID: $RID"
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: fanqie-clean-apk
-          path: /tmp/apk
-          run-id: ${{ steps.runid.outputs.run_id }}
-          github-token: ${{ github.token }}
+          if [ -n "$RID" ]; then
+            gh run download "$RID" -n fanqie-clean-apk -D "$APK_DIR" 2>/dev/null || true
+          fi
 
-      - name: Install APK on emulator + capture logcat
+          APK=$(find "$APK_DIR" -name "*.apk" -type f | head -1)
+          if [ -z "$APK" ]; then
+            echo "NO APK FOUND from artifacts"
+            exit 1
+          fi
+          echo "APK: $APK ($(stat -c%s "$APK") bytes)"
+
+          echo "=== Install ==="
+          adb install -t "$APK" 2>&1 | tail -5
+
+          echo "=== Start app ==="
+          adb logcat -c 2>/dev/null || true
+          adb shell am start -n com.dragon.read/.pages.splash.SplashActivity 2>&1 || true
+          sleep 8
+
+          echo "=== Logcat dump ==="
+          adb logcat -d > /tmp/logcat.txt 2>/dev/null
+          grep -E "AndroidRuntime|FATAL|CRASH|ClassNotFound|dalvikvm|Exception" /tmp/logcat.txt > /tmp/crash.txt || true
+          cat /tmp/crash.txt
+          echo "=== Activity ==="
+          adb shell dumpsys window windows 2>/dev/null | grep -E mCurrentFocus | head -3 || echo "no focus info"
+          echo "=== Screenshot ==="
+          adb exec-out screencap -p > /tmp/screen.png 2>/dev/null || true
+          SCRIPT
+          chmod +x /tmp/capture.sh
+
+      - name: Run emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 31
@@ -29,22 +56,12 @@ jobs:
           ram-size: 3072M
           emulator-options: -no-window -no-audio -no-boot-anim -memory 2048
           disable-animations: true
-          script: |
-            adb install -t /tmp/apk/fanqie-clean.apk 2>&1 | tail -5
-            adb logcat -c
-            adb shell am start -n com.dragon.read/.pages.splash.SplashActivity 2>&1 || true
-            sleep 8
-            adb logcat -d > /tmp/logcat-full.txt 2>/dev/null
-            grep -E "AndroidRuntime|FATAL|CRASH|Exception|ClassNotFound|dalvikvm" /tmp/logcat-full.txt > /tmp/crash-log.txt || true
-            echo "=== CRASH LOG ==="
-            cat /tmp/crash-log.txt
-            echo "=== ACTIVITY FOCUS ==="
-            adb shell dumpsys window windows 2>/dev/null | grep -E mCurrentFocus | head -3 || true
-            adb exec-out screencap -p > /tmp/screen.png 2>/dev/null || true
+          script: bash /tmp/capture.sh
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload crash log
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: crash-log
-          path: /tmp/crash-log.txt
-          retention-days: 7
+          path: /tmp/crash.txt
+          retention-days: 14
