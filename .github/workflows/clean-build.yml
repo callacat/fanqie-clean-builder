@@ -117,15 +117,20 @@ jobs:
           fi
         timeout-minutes: 18
 
-      - name: Generate patch report & overlay modded→official
+      - name: Strip ad SDK from both trees (frees DEX method refs)
         run: |
-          mkdir -p _patches
-          python3 scripts/smali_diff_harvester.py \
-            --official _build/official --modded _build/modded \
-            --output _patches --report _patches/patch-report.json
-          python3 scripts/overlay-patches.py \
-            --official _build/official --modded _build/modded \
-            --report _patches/patch-report.json
+          # Strip official first — frees up space before overlay adds back
+          python3 scripts/remove-ad-sdk.py \
+            --source _build/official \
+            --ad-config config/ad-removal.json \
+            --push-config config/push-removal.json \
+            --permissions-keep config/permissions-keep.txt
+          # Also strip modded so harvester report doesn't include ad SDK noise
+          python3 scripts/remove-ad-sdk.py \
+            --source _build/modded \
+            --ad-config config/ad-removal.json \
+            --push-config config/push-removal.json \
+            --permissions-keep config/permissions-keep.txt
 
       - name: Modify Manifest
         run: |
@@ -138,13 +143,15 @@ jobs:
           grep -c 'usesCleartextTraffic="false"' _build/official/AndroidManifest.xml && echo "  cleartext: closed"
           grep "name=\"android.permission\." _build/official/AndroidManifest.xml || echo "  permissions: cleaned"
 
-      - name: Remove Ad SDK / Push / Tracking
+      - name: Generate patch report & overlay modded→official
         run: |
-          python3 scripts/remove-ad-sdk.py \
-            --source _build/official \
-            --ad-config config/ad-removal.json \
-            --push-config config/push-removal.json \
-            --permissions-keep config/permissions-keep.txt
+          mkdir -p _patches
+          python3 scripts/smali_diff_harvester.py \
+            --official _build/official --modded _build/modded \
+            --output _patches --report _patches/patch-report.json
+          python3 scripts/overlay-patches.py \
+            --official _build/official --modded _build/modded \
+            --report _patches/patch-report.json
 
       - name: Rebuild APK
         run: |
