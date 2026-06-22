@@ -10,7 +10,7 @@ on:
       skip_harvester:
         description: 'Skip smali diff extraction (use cached patches)'
         type: boolean
-        default: true
+        default: false
       custom_patches:
         description: 'Custom patches artifact name (leave empty for cached)'
         required: false
@@ -117,9 +117,9 @@ jobs:
 
   # ============================================================
   # Job 2: Build — Apply patches, debloat, rebuild, sign
+  # Does NOT depend on harvester (patches may come from cache/repo)
   # ============================================================
   build:
-    needs: harvester
     if: always()
     runs-on: ubuntu-22.04
     timeout-minutes: 30
