@@ -32,12 +32,17 @@ jobs:
           echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
 
       - name: Execute
+        env:
+          USER_COMMAND: ${{ inputs.run }}
         run: |
           mkdir -p _output
+          echo "--- COMMAND ---"
+          echo "$USER_COMMAND"
+          echo "--- OUTPUT ---"
           echo '```' > _output/run.md
-          echo "\$ ${{ inputs.run }}" >> _output/run.md
-          echo "" >> _output/run.md
-          eval "${{ inputs.run }}" 2>&1 | tee -a _output/run.md
+          echo '$ USER_COMMAND' >> _output/run.md
+          echo '' >> _output/run.md
+          eval "$USER_COMMAND" 2>&1 | tee -a _output/run.md
           echo '```' >> _output/run.md
 
       - name: Upload output
