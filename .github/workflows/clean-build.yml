@@ -132,3 +132,44 @@ jobs:
           name: build-diff-report
           path: _diff/
           retention-days: 30
+
+  # =============== EMULATOR TEST (one boot, test official + clean) ===============
+
+  emulator-test:
+    needs: [build]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download official APK
+        run: curl -sL -o /tmp/official.apk "$OFFICIAL_URL"
+
+      - name: Download clean APK
+        uses: actions/download-artifact@v4
+        with:
+          name: fanqie-clean-apk
+          path: /tmp/clean-apk/
+
+      - name: Run emulator test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 31
+          target: google_apis
+          arch: x86_64
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -memory 2048
+          disable-animations: true
+          script: |
+            chmod +x scripts/test-apk.sh
+            echo "=== PHASE 1: Official APK Baseline ==="
+            bash scripts/test-apk.sh /tmp/official.apk _results/official "official-baseline"
+            echo "=== PHASE 2: Clean APK ==="
+            bash scripts/test-apk.sh /tmp/clean-apk/fanqie-clean.apk _results/clean "clean-apk"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-test-results
+          path: _results/
+          retention-days: 30
