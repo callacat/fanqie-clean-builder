@@ -96,6 +96,7 @@ def extract_package_prefixes(deleted_packages: list[str]) -> list[str]:
     """
     prefixes: set[str] = set()
     for p in deleted_packages:
+        p = p.replace("/", ".")  # ponytail: config paths use /, manifest uses .
         parts = p.split(".")
         # 找到第一个大写字母开头的部分（类名开始）
         for i, part in enumerate(parts):
