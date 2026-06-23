@@ -133,12 +133,14 @@ jobs:
           path: _diff/
           retention-days: 30
 
-  # =============== EMULATOR TEST (one boot, test official + clean) ===============
+  # =============== EMULATOR TEST ===============
+  # Single emulator boot, test official baseline + clean APK sequentially.
+  # Uses google_atd (CI-optimized image, ~3x faster boot than google_apis).
 
   emulator-test:
     needs: [build]
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
 
@@ -154,8 +156,8 @@ jobs:
       - name: Run emulator test
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 31
-          target: google_apis
+          api-level: 34
+          target: google_atd
           arch: x86_64
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -memory 2048
           disable-animations: true
