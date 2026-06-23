@@ -138,8 +138,8 @@ jobs:
 
   emulator-test:
     needs: [build]
-    runs-on: ubuntu-22.04
-    timeout-minutes: 40
+    runs-on: macos-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Download official APK
