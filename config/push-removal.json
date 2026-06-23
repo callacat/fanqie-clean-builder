@@ -18,6 +18,8 @@
     "com.vivo.push.service.VivoPushService",
     "com.vivo.push.receiver.VivoPushReceiver",
     "com.oppo.push.service.OppoPushService",
-    "com.oppo.push.receiver.OppoPushReceiver"
+    "com.oppo.push.receiver.OppoPushReceiver",
+    "com.bytedance.push.settings.storage.MainProcessSettingsProvider",
+    "com.heytap.push.service.PushService"
   ]
 }
