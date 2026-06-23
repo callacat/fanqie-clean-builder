@@ -1,0 +1,48 @@
+name: Execute — General Purpose Runner
+on:
+  workflow_dispatch:
+    inputs:
+      run:
+        description: Shell command to execute
+        required: true
+        type: string
+      timeout:
+        description: Minutes before timeout
+        required: false
+        default: "10"
+        type: string
+
+jobs:
+  exec:
+    runs-on: ubuntu-22.04
+    timeout-minutes: ${{ fromJSON(inputs.timeout || 10) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+
+      - name: Install apktool
+        run: |
+          curl -sL "https://github.com/iBotPeaches/Apktool/releases/download/v3.0.2/apktool_3.0.2.jar" -o /opt/apktool.jar
+          printf '#!/bin/bash\njava -jar /opt/apktool.jar "$@"\n' > /opt/apktool && chmod +x /opt/apktool
+
+      - name: Setup Android SDK
+        run: |
+          ls /usr/local/lib/android/sdk/platform-tools/adb 2>/dev/null && echo "SDK available"
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+
+      - name: Execute
+        run: |
+          mkdir -p _output
+          echo '```' > _output/run.md
+          echo "\$ ${{ inputs.run }}" >> _output/run.md
+          echo "" >> _output/run.md
+          eval "${{ inputs.run }}" 2>&1 | tee -a _output/run.md
+          echo '```' >> _output/run.md
+
+      - name: Upload output
+        uses: actions/upload-artifact@v4
+        with:
+          name: exec-output
+          path: _output/
+          retention-days: 7
