@@ -1,0 +1,92 @@
+name: Emulator Test — Manual (no action)
+on:
+  workflow_dispatch:
+    inputs:
+      apk-official-url:
+        description: Official APK URL
+        default: 'https://cloud.dsdog.tk/d/google/temp/%E7%95%AA%E8%8C%84%E5%85%8D%E8%B4%B9%E5%B0%8F%E8%AF%B4_7.2.4.32.apk?sign=xUavME2Rt4Vf1FTbCppPq7sU8bRUFh29hrbIhdsXon4=:0'
+        type: string
+      apk-clean-path:
+        description: Clean APK path from earlier build
+        default: ''
+        type: string
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+
+      - name: Download APKs
+        run: |
+          curl -sL -o /tmp/official.apk '${{ inputs.apk-official-url }}'
+          ls -lh /tmp/official.apk
+
+      - name: Install SDK components
+        run: |
+          export JAVA_TOOL_OPTIONS="-Xmx4g"
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager --install 'platforms;android-31' 'system-images;android-31;google_apis;arm64-v8a' \
+            'emulator' 'platform-tools' 2>&1 | tail -5
+          echo "SDK installed"
+
+      - name: Create AVD
+        run: |
+          export JAVA_TOOL_OPTIONS="-Xmx4g"
+          avdmanager -s create avd -n test -k 'system-images;android-31;google_apis;arm64-v8a' -d pixel_6 \
+            -f 2>&1
+          echo "AVD created"
+
+      - name: Launch Emulator
+        run: |
+          # Start emulator in background
+          $ANDROID_HOME/emulator/emulator -avd test \
+            -no-window -noaudio -no-boot-anim -no-snapshot \
+            -memory 2048 -no-hvf -gpu swiftshader_indirect \
+            -port 5554 &
+          EMU_PID=$!
+          echo "EMU_PID=$EMU_PID" >> $GITHUB_ENV
+          echo "Emulator started PID=$EMU_PID"
+
+          # Wait for boot
+          export ADB=$ANDROID_HOME/platform-tools/adb
+          echo "Waiting for device..."
+          for i in $(seq 1 120); do
+            $ADB -s emulator-5554 wait-for-device 2>/dev/null || { sleep 2; continue; }
+            BOOT=$($ADB -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)
+            [ "$BOOT" = "1" ] && { echo "Booted in ~${i}s"; break; }
+            sleep 2
+          done
+
+      - name: Install & Test Official APK
+        run: |
+          export ADB=$ANDROID_HOME/platform-tools/adb
+          echo "Installing official APK..."
+          timeout 300 $ADB -s emulator-5554 install -r /tmp/official.apk 2>&1
+          
+          echo "Launching..."
+          $ADB -s emulator-5554 shell am start -n com.dragon.read/com.dragon.read.pages.splash.SplashActivity -W 2>&1 || true
+          sleep 10
+          
+          # Collect results
+          mkdir -p _results
+          $ADB -s emulator-5554 shell dumpsys window | grep -i 'current.*focus' 2>/dev/null > _results/window.txt || true
+          $ADB -s emulator-5554 logcat -d 2>/dev/null | grep -iE 'FATAL EXCEPTION|CRASH|ANR|ClassNotFoundException' | head -20 || true
+          $ADB -s emulator-5554 shell screencap -p /data/local/tmp/shot.png 2>/dev/null || true
+          $ADB -s emulator-5554 pull /data/local/tmp/shot.png _results/screenshot.png 2>/dev/null || true
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emu-manual-results
+          path: _results/
+          retention-days: 30
+
+      - name: Cleanup
+        if: always()
+        run: |
+          $ANDROID_HOME/platform-tools/adb -s emulator-5554 emu kill 2>/dev/null || true
