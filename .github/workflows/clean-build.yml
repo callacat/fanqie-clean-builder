@@ -187,15 +187,16 @@ jobs:
           APK=_test/fanqie-clean.apk
           echo "=== APK size ==="
           ls -lh "$APK"
-          echo "=== Package name & version (aapt2) ==="
-          apt list --installed 2>/dev/null | grep -q aapt2 || sudo apt-get -qq install -y aapt2 2>/dev/null
-          PKG=$(aapt2 dump badging "$APK" 2>/dev/null | grep "^package:" | grep -oP "name='\K[^']+")
-          VER=$(aapt2 dump badging "$APK" 2>/dev/null | grep "^package:" | grep -oP "versionName='\K[^']+")
-          echo "  package: $PKG"
-          echo "  versionName: $VER"
-          echo "=== Ad/push SDK removal check (unzip + grep) ==="
-          unzip -p "$APK" AndroidManifest.xml 2>/dev/null | strings | grep -c "com.bytedance.push" && echo "  ⚠️ push refs remain" || echo "  ✅ no push refs"
+          echo "=== Package name & version ==="
+          XML=$(unzip -p "$APK" AndroidManifest.xml 2>/dev/null | strings)
+          PKG=$(echo "$XML" | grep -oP 'package="\K[^"]+' | head -1)
+          VER=$(echo "$XML" | grep -oP 'versionName="\K[^"]+' | head -1)
+          MINI=$(echo "$XML" | grep -oP 'android:minSdkVersion\s*=\s*"\K[^"]+' | head -1)
+          echo "  package: ${PKG:-unknown}"
+          echo "  versionName: ${VER:-unknown}"
+          echo "  minSdkVersion: ${MINI:-unknown}"
+          echo "=== Ad/push SDK manifest refs ==="
+          echo "$XML" | grep -c "com.bytedance.push" >/dev/null && echo "  ⚠️ push refs remain" || echo "  ✅ no push refs"
           for sdk in luckycat pangle baidu.mobads sigmob kuaishou; do
-            unzip -l "$APK" 2>/dev/null | grep -q "smali.*$sdk" && echo "  ⚠️ $sdk remains" || echo "  ✅ $sdk removed"
+            unzip -l "$APK" 2>/dev/null | grep -qi "smali.*$sdk" && echo "  ⚠️ $sdk remains" || echo "  ✅ $sdk removed"
           done
-          rm -rf /tmp/apk_check 2>/dev/null || true
