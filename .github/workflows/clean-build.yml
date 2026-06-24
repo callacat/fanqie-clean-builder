@@ -164,39 +164,33 @@ jobs:
             unzip -l "$APK" 2>/dev/null | grep -qi "smali.*$sdk" && echo "  ⚠️ $sdk remains" || echo "  ✅ $sdk removed"
           done
 
-  # =============== EMULATOR SMOKE TEST (macos ARM, arm64-v8a) ===============
+  # =============== EMULATOR SMOKE TEST (PVE LXC + redroid) ===============
 
   emulator-smoke-test:
     needs: build
-    runs-on: macos-latest
-    timeout-minutes: 20
+    runs-on: pve-redroid
+    timeout-minutes: 10
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: fanqie-clean-apk
           path: _test
 
-      - name: Run smoke test
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 31
-          target: google_apis
-          arch: arm64-v8a
-          avd-name: SmokeTestAVD
-          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -accel auto -memory 2048 -cores 4
-          disable-animations: true
-          ram-size: 2048M
-          script: |
-            echo "--- Installing APK ---"
-            adb install -r _test/fanqie-clean.apk || { echo "INSTALL FAILED"; exit 1; }
-            echo "--- Launching app ---"
-            adb shell am start -n com.dragon.read/.app.SafeModeActivity
-            echo "--- Waiting 15s for launch ---"
-            sleep 15
-            echo "--- Checking crash buffer ---"
-            adb logcat -d -b crash | grep -E "FATAL EXCEPTION|CRASH" && { echo "❌ CRASH DETECTED"; exit 1; }
-            echo "--- Checking main log ---"
-            adb logcat -d | grep -E "FATAL EXCEPTION|ANR in com.dragon.read" && { echo "❌ ANR DETECTED"; exit 1; }
-            echo "--- Checking process ---"
-            adb shell dumpsys activity activities | grep com.dragon.read || { echo "❌ APP NOT RUNNING"; exit 1; }
-            echo "✅ Smoke test passed"
+      - name: Install and smoke test
+        run: |
+          APK=_test/fanqie-clean.apk
+          echo "--- Copying APK to redroid ---"
+          docker cp "$APK" redroid:/data/local/tmp/test.apk
+          echo "--- Installing APK ---"
+          docker exec redroid sh -c 'pm install -r /data/local/tmp/test.apk' || { echo "INSTALL FAILED"; exit 1; }
+          echo "--- Launching app ---"
+          docker exec redroid sh -c 'am start -n com.dragon.read/.app.SafeModeActivity'
+          echo "--- Waiting 15s for launch ---"
+          sleep 15
+          echo "--- Checking crash buffer ---"
+          docker exec redroid sh -c 'logcat -d -b crash' | grep -E "FATAL EXCEPTION|CRASH" && { echo "❌ CRASH DETECTED"; exit 1; }
+          echo "--- Checking main log ---"
+          docker exec redroid sh -c 'logcat -d' | grep -E "FATAL EXCEPTION|ANR in com.dragon.read" && { echo "❌ ANR DETECTED"; exit 1; }
+          echo "--- Checking process ---"
+          docker exec redroid sh -c 'dumpsys activity activities | grep com.dragon.read' || { echo "❌ APP NOT RUNNING"; exit 1; }
+          echo "✅ Smoke test passed"
