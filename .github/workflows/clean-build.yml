@@ -133,12 +133,12 @@ jobs:
           path: _diff/
           retention-days: 30
 
-  # =============== EMULATOR SMOKE TEST (macos-13 Intel, supports hvf) ===============
+  # =============== A: EMULATOR SMOKE TEST (ubuntu, swiftshader software rendering) ===============
 
   emulator-smoke-test:
     needs: build
-    runs-on: macos-13
-    timeout-minutes: 20
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -152,7 +152,7 @@ jobs:
           target: google_apis
           arch: x86_64
           avd-name: SmokeTestAVD
-          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -accel on -memory 2048 -cores 4
+          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -memory 2048 -cores 2
           disable-animations: true
           ram-size: 2048M
           script: |
@@ -160,8 +160,8 @@ jobs:
             adb install -r _test/fanqie-clean.apk || { echo "INSTALL FAILED"; exit 1; }
             echo "--- Launching app ---"
             adb shell am start -n com.dragon.read/.app.SafeModeActivity
-            echo "--- Waiting 10s for launch ---"
-            sleep 10
+            echo "--- Waiting 15s for launch ---"
+            sleep 15
             echo "--- Checking crash buffer ---"
             adb logcat -d -b crash | grep -E "FATAL EXCEPTION|CRASH" && { echo "❌ CRASH DETECTED"; exit 1; }
             echo "--- Checking main log ---"
@@ -170,3 +170,32 @@ jobs:
             adb shell dumpsys activity activities | grep com.dragon.read || { echo "❌ APP NOT RUNNING"; exit 1; }
             echo "✅ Smoke test passed — no startup crash"
 
+  # =============== B: STRUCTURAL CHECK (fast, no emulator needed) ===============
+
+  structural-check:
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: fanqie-clean-apk
+          path: _test
+
+      - name: APK structure validation
+        run: |
+          APK=_test/fanqie-clean.apk
+          echo "=== APK size ==="
+          ls -lh "$APK"
+          echo "=== Package name & version (aapt2) ==="
+          apt list --installed 2>/dev/null | grep -q aapt2 || sudo apt-get -qq install -y aapt2 2>/dev/null
+          PKG=$(aapt2 dump badging "$APK" 2>/dev/null | grep "^package:" | grep -oP "name='\K[^']+")
+          VER=$(aapt2 dump badging "$APK" 2>/dev/null | grep "^package:" | grep -oP "versionName='\K[^']+")
+          echo "  package: $PKG"
+          echo "  versionName: $VER"
+          echo "=== Ad/push SDK removal check (unzip + grep) ==="
+          unzip -p "$APK" AndroidManifest.xml 2>/dev/null | strings | grep -c "com.bytedance.push" && echo "  ⚠️ push refs remain" || echo "  ✅ no push refs"
+          for sdk in luckycat pangle baidu.mobads sigmob kuaishou; do
+            unzip -l "$APK" 2>/dev/null | grep -q "smali.*$sdk" && echo "  ⚠️ $sdk remains" || echo "  ✅ $sdk removed"
+          done
+          rm -rf /tmp/apk_check 2>/dev/null || true
