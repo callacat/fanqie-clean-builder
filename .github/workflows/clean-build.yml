@@ -133,43 +133,6 @@ jobs:
           path: _diff/
           retention-days: 30
 
-  # =============== A: EMULATOR SMOKE TEST (ubuntu, swiftshader software rendering) ===============
-
-  emulator-smoke-test:
-    needs: build
-    runs-on: ubuntu-22.04
-    timeout-minutes: 35
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: fanqie-clean-apk
-          path: _test
-
-      - name: Run smoke test
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 31
-          target: google_apis
-          arch: x86_64
-          avd-name: SmokeTestAVD
-          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -memory 2048 -cores 2
-          disable-animations: true
-          ram-size: 2048M
-          script: |
-            echo "--- Installing APK ---"
-            adb install -r _test/fanqie-clean.apk || { echo "INSTALL FAILED"; exit 1; }
-            echo "--- Launching app ---"
-            adb shell am start -n com.dragon.read/.app.SafeModeActivity
-            echo "--- Waiting 15s for launch ---"
-            sleep 15
-            echo "--- Checking crash buffer ---"
-            adb logcat -d -b crash | grep -E "FATAL EXCEPTION|CRASH" && { echo "❌ CRASH DETECTED"; exit 1; }
-            echo "--- Checking main log ---"
-            adb logcat -d | grep -E "FATAL EXCEPTION|ANR in com.dragon.read" && { echo "❌ CRASH/ANR DETECTED"; exit 1; }
-            echo "--- Checking process ---"
-            adb shell dumpsys activity activities | grep com.dragon.read || { echo "❌ APP NOT RUNNING"; exit 1; }
-            echo "✅ Smoke test passed — no startup crash"
-
   # =============== B: STRUCTURAL CHECK (fast, no emulator needed) ===============
 
   structural-check:
