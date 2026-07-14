@@ -18,6 +18,15 @@ def run(cmd, desc):
     return r
 
 def main():
+    # ponytail: memory check, add per-build profiling if builds still OOM
+    import subprocess as _sp
+    _mem_check = _sp.run(['bash', os.path.join(os.path.dirname(__file__), 'pre-build-check.sh')],
+                          capture_output=True, text=True)
+    print(_mem_check.stdout.strip())
+    if _mem_check.returncode != 0:
+        print("ERROR: Insufficient memory for build. Close other processes and retry.")
+        sys.exit(1)
+
     project_dir = sys.argv[1] if len(sys.argv) > 1 else '_build/official'
     output_apk = sys.argv[2] if len(sys.argv) > 2 else 'fanqie-clean.apk'
 
