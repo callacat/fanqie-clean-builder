@@ -1,0 +1,85 @@
+# 红果短剧修改补丁 — 可复用的 mod patch workflow
+# 复制到目标项目的 .github/workflows/ 并修改 APK_URL
+#
+# Patch 流程:
+#   1. 清空黑产服务器域名 (clear-domain.py)
+#   2. 域名毒化 + checkUpdate 禁用 (domain-poison.py)
+#   3. 弹窗 NOP (nop-dialog.py)
+#   4. 重构建 + 签名
+#
+# 使用方法:
+#   gh workflow run mod-patch.yml -R owner/repo -f apk_url=<url>
+
+name: Mod Patch Pipeline
+run-name: Mod Patch — ${{ inputs.apk_url || 'default' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      apk_url:
+        description: 'APK 下载地址'
+        required: true
+        type: string
+
+jobs:
+  patch:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install apktool
+        run: |
+          curl -sL "https://github.com/iBotPeaches/Apktool/releases/download/v3.0.2/apktool_3.0.2.jar" -o /opt/apktool.jar
+          printf '#!/bin/bash\njava -jar /opt/apktool.jar "$@"\n' > /opt/apktool && chmod +x /opt/apktool
+
+      - name: Download APK
+        run: |
+          curl -sL --max-time 300 "${{ inputs.apk_url }}" -o /tmp/app.apk
+          ls -lh /tmp/app.apk
+
+      - name: apktool decode
+        run: |
+          /opt/apktool d /tmp/app.apk -o /tmp/apktool_out -f -r 2>&1 | tail -3
+
+      - name: Step 1 — 清空黑产域名
+        run: python3 scripts/mod-patches/clear-domain.py /tmp/apktool_out
+
+      - name: Step 2 — 域名毒化 + checkUpdate 禁用
+        run: python3 scripts/mod-patches/domain-poison.py /tmp/apktool_out
+
+      - name: Step 3 — 弹窗 NOP
+        run: python3 scripts/mod-patches/nop-dialog.py /tmp/apktool_out
+
+      - name: Rebuild APK
+        run: |
+          /opt/apktool b /tmp/apktool_out -o /tmp/app-unsigned.apk --copy-original 2>&1 | tail -5
+          ls -lh /tmp/app-unsigned.apk
+
+      - name: Sign APK
+        run: |
+          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Debug,O=Clean,C=CN" 2>/dev/null
+          SDK=/usr/local/lib/android/sdk
+          BT=$(find "$SDK/build-tools" -maxdepth 1 -type d | sort -Vr | head -1)
+          zip -d /tmp/app-unsigned.apk 'META-INF/*.SF' 'META-INF/*.RSA' 'META-INF/*.DSA' 2>/dev/null || true
+          $BT/zipalign -v -p 4 /tmp/app-unsigned.apk /tmp/app-aligned.apk 2>&1 | tail -1
+          $BT/apksigner sign --ks /tmp/debug.keystore --ks-pass pass:android \
+            --ks-key-alias androiddebugkey \
+            --v2-signing-enabled true --v3-signing-enabled true \
+            --out /tmp/app-modified.apk /tmp/app-aligned.apk 2>&1 | tail -3
+          $BT/apksigner verify --verbose /tmp/app-modified.apk 2>&1 | head -5
+          ls -lh /tmp/app-modified.apk
+
+      - name: Upload patched APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-modified
+          path: /tmp/app-modified.apk
+          retention-days: 7
