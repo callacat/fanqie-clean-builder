@@ -61,31 +61,20 @@ jobs:
           /opt/apktool b _build/source -o _build/fanqie-unsigned.apk 2>&1 | tail -5
           ls -lh _build/fanqie-unsigned.apk || exit 1
 
-      - name: Sign APK
+      - name: Sign APK (V2+V3 via apksigner)
         run: |
           [ -f debug.keystore ] || keytool -genkey -v -keystore debug.keystore -alias debug \
             -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android \
-            -dname "CN=Debug,O=Clean,C=CN"
-          # Try apksigner (Android SDK), fallback to uber-apk-signer, then jarsigner
-          APKSIGNER=$(find /usr/local/lib/android/sdk -name apksigner -type f 2>/dev/null | head -1)
-          if [ -n "$APKSIGNER" ]; then
-            "$APKSIGNER" sign --ks debug.keystore --ks-pass pass:android \
-              --out _build/fanqie-clean.apk _build/fanqie-unsigned.apk 2>&1 | tail -3
-            echo "Signed with apksigner"
-          elif curl -sL --connect-timeout 10 \
-            "https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar" \
-            -o /tmp/uber.jar 2>/dev/null; then
-            java -jar /tmp/uber.jar --apks _build/fanqie-unsigned.apk \
-              --ks debug.keystore --ksAlias debug --ksPass android --ksKeyPass android 2>&1 | tail -3
-            cp _build/fanqie-unsigned.apk _build/fanqie-clean.apk
-            echo "Signed with uber-apk-signer"
-          else
-            jarsigner -sigalg SHA1withRSA -digestalg SHA1 \
-              -keystore debug.keystore -storepass android \
-              _build/fanqie-unsigned.apk debug 2>&1 | tail -3
-            mv _build/fanqie-unsigned.apk _build/fanqie-clean.apk
-            echo "Signed with jarsigner (v1 only)"
-          fi
+            -dname "CN=Debug,O=Clean,C=CN" 2>/dev/null
+          SDK=/usr/local/lib/android/sdk
+          BT=$(find "$SDK/build-tools" -maxdepth 1 -type d | sort -Vr | head -1)
+          # Strip old signatures, then zipalign + apksigner V2+V3
+          zip -d _build/fanqie-unsigned.apk 'META-INF/*.SF' 'META-INF/*.RSA' 'META-INF/*.DSA' 2>/dev/null || true
+          "$BT/zipalign" -v -p 4 _build/fanqie-unsigned.apk /tmp/fanqie-aligned.apk 2>&1 | tail -1
+          "$BT/apksigner" sign --ks debug.keystore --ks-pass pass:android \
+            --ks-key-alias debug --v2-signing-enabled true --v3-signing-enabled true \
+            --out _build/fanqie-clean.apk /tmp/fanqie-aligned.apk 2>&1 | tail -3
+          "$BT/apksigner" verify --verbose _build/fanqie-clean.apk 2>&1 | head -8
           ls -lh _build/fanqie-clean.apk
 
       - name: Upload APK
